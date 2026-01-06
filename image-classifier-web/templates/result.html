@@ -1,0 +1,77 @@
+{% extends "layout.html" %}
+
+{% block title %}Analyse Resultaat{% endblock %}
+
+{% block content %}
+<main class="container report-container">
+    <header class="report-header">
+        <div class="header-main">
+            {% if filename %}
+            <img src="{{ url_for('uploaded_file', filename=filename) }}" alt="Evidence" class="report-thumbnail" />
+            {% endif %}
+            <div class="header-info">
+                <h3>📄 Automated Metadata & Legal Description Report</h3>
+                <div class="metadata-grid">
+                    <p><strong>Case ID:</strong> AMS-{{ range(100000, 999999) | random }}</p>
+                    <p><strong>Generated:</strong> {{ "now" | datetimeformat if datetimeformat else "January 5, 2026" }}</p>
+                    <p><strong>Language:</strong> English</p>
+                    <p><strong>Model:</strong> MLLM (Multi-modal Large Language Model)</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <hr class="ams-divider" />
+
+    <div class="report-grid">
+        <section class="report-column">
+            <h4>Image Description</h4>
+            <div class="content-box">
+                <p>{{ text }}</p>
+                <p><strong>Object Detection Analysis:</strong> The automated system has identified key elements within the image to support legal reasoning.</p>
+            </div>
+        </section>
+
+        <section class="report-column">
+            <h4>Legal Reasoning</h4>
+            <div class="legal-box">
+                <h5>Violation Explanation</h5>
+                <p>The analyzed evidence suggests a violation of local ordinances regarding the specific zone identified in the metadata.</p>
+                
+                <h5>Regulation References</h5>
+                <div class="tag-container">
+                    <span class="ams-tag">APV Amsterdam Art. 15.2</span>
+                    <span class="ams-tag">RVV 1990 E.1</span>
+                </div>
+            </div>
+
+            <h4 class="score-title">Confidence Scores</h4>
+            <div class="score-card">
+                <div class="score-item">
+                    <div class="score-info"><span>Object Detection</span> <strong>94%</strong></div>
+                    <div class="progress-bg"><div class="progress-fill" style="width: 94%;"></div></div>
+                </div>
+                <div class="score-item">
+                    <div class="score-info"><span>Text Recognition</span> <strong>88%</strong></div>
+                    <div class="progress-bg"><div class="progress-fill" style="width: 88%;"></div></div>
+                </div>
+                <div class="score-item">
+                    <div class="score-info"><span>Legal Reasoning</span> <strong>86%</strong></div>
+                    <div class="progress-bg"><div class="progress-fill" style="width: 86%;"></div></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <footer class="report-footer">
+        <h4>Download Options</h4>
+        <div class="button-group">
+            <button class="btn btn-primary">📥 Full Report (PDF)</button>
+            <button class="btn btn-outline">📥 Image + Description</button>
+            <button class="btn btn-outline">📥 Text-Only</button>
+        </div>
+        <p class="footer-note">City of Amsterdam 2026</p>
+        <a href="/" class="back-link">← Start nieuwe analyse</a>
+    </footer>
+</main>
+{% endblock %}

@@ -1,0 +1,97 @@
+{% extends "layout.html" %}
+
+{% block title %}Upload{% endblock %}
+
+{% block content %}
+<main class="container">
+    <section class="hero">
+        <h1>Image Classifier</h1>
+        <p>Automated evidence analysis and legal support.</p>
+    </section>
+
+    <form id="uploadForm" action="/predict" method="post" enctype="multipart/form-data">
+        <div class="main-grid">
+            
+            <div class="card upload-card">
+                <h3>Upload File</h3>
+                <div class="file-input-wrapper">
+                    <input type="file" name="file" id="fileInput" accept="image/*" />
+                </div>
+                <p id="errorMessage" style="color: #ec0000; font-size: 0.85rem; margin-top: 10px; display: none;">
+                    Please select an image file before submitting.
+                </p>
+            </div>
+
+            <div class="card settings-card">
+                <div class="settings-header">
+                    <h3>Settings</h3>
+                </div>
+                
+                <div class="setting-group">
+                    <label>Language</label>
+                    <select name="language">
+                        <option value="en">English</option>
+                        <option value="nl">Nederlands</option>
+                    </select>
+                </div>
+
+                <div class="setting-group toggle-group">
+                    <div>
+                        <label>Decision Support</label>
+                        <small>Enable AI-powered legal reasoning suggestions</small>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" name="decision_support" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="setting-group">
+                    <label>Output File Type</label>
+                    <div class="radio-options">
+                        <label class="radio-item">
+                            <input type="radio" name="filetype" value="pdf" checked> PDF
+                        </label>
+                        <label class="radio-item">
+                            <input type="radio" name="filetype" value="docx"> DOCX
+                        </label>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <label>Model Type</label>
+                    <select name="model">
+                        <option value="mllm">MLLM</option>
+                    </select>
+                    <small>Multi-modal large language model</small>
+                </div>
+
+                <button type="submit" class="btn btn-primary full-width">
+                    Start Analysis & Save Settings
+                </button>
+            </div>
+        </div>
+    </form>
+</main>
+
+<script>
+    // Validatie: check of er een bestand is voor het verzenden
+    document.getElementById('uploadForm').onsubmit = function(e) {
+        const fileInput = document.getElementById('fileInput');
+        const errorMessage = document.getElementById('errorMessage');
+
+        if (fileInput.files.length === 0) {
+            e.preventDefault(); 
+            errorMessage.style.display = 'block';
+            // Scroll terug naar het bestandveld zodat de gebruiker de fout ziet
+            fileInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return false;
+        }
+    };
+
+    // Verberg melding bij selectie
+    document.getElementById('fileInput').onchange = function() {
+        document.getElementById('errorMessage').style.display = 'none';
+    };
+</script>
+{% endblock %}
