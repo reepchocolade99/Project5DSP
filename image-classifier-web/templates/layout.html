@@ -1,6 +1,8 @@
 <!doctype html>
-<html lang="nl">
+<html lang="{{ lang if lang else 'en' }}">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/static/styles.css" />
     <title>{% block title %}{% endblock %} - Gemeente Amsterdam</title>
 </head>
@@ -14,7 +16,7 @@
                     <span>Amsterdam</span>
                 </div>
                 <div class="logo-divider"></div>
-                <span class="service-name">Image Classifier</span>
+                <span class="service-name">{{ t.header_service if t else 'Image Classifier' }}</span>
             </div>
         </div>
     </header>

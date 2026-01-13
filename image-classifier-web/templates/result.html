@@ -1,77 +1,694 @@
 {% extends "layout.html" %}
 
-{% block title %}Analyse Resultaat{% endblock %}
+{% block title %}{{ t.page_title }}{% endblock %}
 
 {% block content %}
-<main class="container report-container">
-    <header class="report-header">
-        <div class="header-main">
-            {% if filename %}
-            <img src="{{ url_for('uploaded_file', filename=filename) }}" alt="Evidence" class="report-thumbnail" />
-            {% endif %}
-            <div class="header-info">
-                <h3>📄 Automated Metadata & Legal Description Report</h3>
-                <div class="metadata-grid">
-                    <p><strong>Case ID:</strong> AMS-{{ range(100000, 999999) | random }}</p>
-                    <p><strong>Generated:</strong> {{ "now" | datetimeformat if datetimeformat else "January 5, 2026" }}</p>
-                    <p><strong>Language:</strong> English</p>
-                    <p><strong>Model:</strong> MLLM (Multi-modal Large Language Model)</p>
-                </div>
-            </div>
+<main class="result-page">
+    <!-- Tab Navigation -->
+    <div class="tab-container">
+        <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="report">{{ t.tab_report }}</button>
+            <button class="tab-btn" data-tab="summary">{{ t.tab_summary }}</button>
+        </nav>
+        <div class="tab-actions">
+            <span class="generated-time">{{ t.generated }}: {{ generated_at }}</span>
         </div>
-    </header>
-
-    <hr class="ams-divider" />
-
-    <div class="report-grid">
-        <section class="report-column">
-            <h4>Image Description</h4>
-            <div class="content-box">
-                <p>{{ text }}</p>
-                <p><strong>Object Detection Analysis:</strong> The automated system has identified key elements within the image to support legal reasoning.</p>
-            </div>
-        </section>
-
-        <section class="report-column">
-            <h4>Legal Reasoning</h4>
-            <div class="legal-box">
-                <h5>Violation Explanation</h5>
-                <p>The analyzed evidence suggests a violation of local ordinances regarding the specific zone identified in the metadata.</p>
-                
-                <h5>Regulation References</h5>
-                <div class="tag-container">
-                    <span class="ams-tag">APV Amsterdam Art. 15.2</span>
-                    <span class="ams-tag">RVV 1990 E.1</span>
-                </div>
-            </div>
-
-            <h4 class="score-title">Confidence Scores</h4>
-            <div class="score-card">
-                <div class="score-item">
-                    <div class="score-info"><span>Object Detection</span> <strong>94%</strong></div>
-                    <div class="progress-bg"><div class="progress-fill" style="width: 94%;"></div></div>
-                </div>
-                <div class="score-item">
-                    <div class="score-info"><span>Text Recognition</span> <strong>88%</strong></div>
-                    <div class="progress-bg"><div class="progress-fill" style="width: 88%;"></div></div>
-                </div>
-                <div class="score-item">
-                    <div class="score-info"><span>Legal Reasoning</span> <strong>86%</strong></div>
-                    <div class="progress-bg"><div class="progress-fill" style="width: 86%;"></div></div>
-                </div>
-            </div>
-        </section>
     </div>
 
-    <footer class="report-footer">
-        <h4>Download Options</h4>
-        <div class="button-group">
-            <button class="btn btn-primary">📥 Full Report (PDF)</button>
-            <button class="btn btn-outline">📥 Image + Description</button>
-            <button class="btn btn-outline">📥 Text-Only</button>
+    <!-- ==================== REPORT TAB ==================== -->
+    <div class="tab-content active" id="tab-report">
+        <div class="report-layout">
+            <!-- Left Column: Narrative Sections -->
+            <div class="report-main">
+                <div class="report-header-card">
+                    <div class="case-badge">
+                        <span class="badge-label">{{ t.case }}</span>
+                        <span class="badge-value">{{ doc_summary.case.volgnummer or t.not_available }}</span>
+                    </div>
+                    <div class="violation-badge {% if doc_summary.violation.code and doc_summary.violation.code != t.not_specified %}has-code{% endif %}">
+                        <span class="violation-code">{{ doc_summary.violation.code or '?' }}</span>
+                        <span class="violation-desc">{{ doc_summary.violation.description or t.parking_violation }}</span>
+                    </div>
+                </div>
+
+                <!-- Report Sections -->
+                <div class="sections-container">
+                    {% for section in report_sections %}
+                    {% if section.source != 'document' %}
+                    <div class="report-section" data-section-id="{{ section.id }}">
+                        <div class="section-header">
+                            <h3>{{ section.title }}</h3>
+                            <div class="section-badges">
+                                {% if section.source == 'document' %}
+                                <span class="source-badge document">{{ t.from_document }}</span>
+                                {% elif section.source == 'model' %}
+                                <span class="source-badge model">{{ t.ai_generated }}</span>
+                                {% elif section.source == 'template' %}
+                                <span class="source-badge template">{{ t.legal_template }}</span>
+                                {% elif section.source == 'missing' %}
+                                <span class="source-badge missing">{{ t.missing_data }}</span>
+                                {% else %}
+                                <span class="source-badge system">{{ t.system }}</span>
+                                {% endif %}
+
+                                {% if section.editable %}
+                                <button class="btn-icon copy-btn" title="{{ t.copy_to_clipboard }}" data-content="{{ section.content }}">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                    </svg>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="section-content">
+                            {% if section.editable %}
+                            <div class="editable-content" contenteditable="true">{{ section.content }}</div>
+                            {% else %}
+                            <p>{{ section.content }}</p>
+                            {% endif %}
+
+                            {% if section.confidence %}
+                            <div class="inline-confidence">
+                                <span>{{ t.confidence }}:</span>
+                                <div class="mini-progress">
+                                    <div class="mini-fill" style="width: {{ (section.confidence * 100)|int }}%"></div>
+                                </div>
+                                <span>{{ (section.confidence * 100)|int }}%</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Right Column: Image Inspector + Confidence -->
+            <div class="report-sidebar">
+                <!-- Image Inspector -->
+                <div class="inspector-card">
+                    <h4>{{ t.evidence_inspector }}</h4>
+
+                    {% if extracted_images %}
+                    <div class="inspector-main-image">
+                        <img id="inspectorImage" src="{{ url_for('data_file', filename=extracted_images[0]) }}" alt="Selected evidence">
+                    </div>
+
+                    <div class="inspector-details">
+                        <div class="detail-row">
+                            <span class="detail-label">{{ t.filename }}:</span>
+                            <span class="detail-value" id="inspectorFilename">{{ extracted_images[0] }}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">{{ t.page }}:</span>
+                            <span class="detail-value" id="inspectorPage">{{ images_metadata[0].page if images_metadata else '-' }}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">{{ t.method }}:</span>
+                            <span class="detail-value" id="inspectorMethod">{{ images_metadata[0].method if images_metadata else '-' }}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">{{ t.size }}:</span>
+                            <span class="detail-value" id="inspectorSize">{{ images_metadata[0].width if images_metadata else '-' }} x {{ images_metadata[0].height if images_metadata else '-' }}</span>
+                        </div>
+                    </div>
+
+                    {% if model_type == 'sam' %}
+                    <!-- SAM3 Overlay Toggle -->
+                    {% if sam3_results %}
+                    <div class="overlay-toggle">
+                        <button class="btn btn-sm btn-outline" id="toggleOverlay" data-showing="false">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                <polyline points="21 15 16 10 5 21"></polyline>
+                            </svg>
+                            <span id="overlayBtnText">{{ t.show_overlay }}</span>
+                        </button>
+                    </div>
+                    {% endif %}
+
+                    <!-- Detected Items (SAM3-driven) -->
+                    <div class="detected-items">
+                        <h5>{{ t.detected_items }}</h5>
+                        <ul class="detection-list" id="detectionList">
+                            {% if detected_items_ui and detected_items_ui['items'] %}
+                                {% for item in detected_items_ui['items'] %}
+                                <li class="{% if not item.detected %}not-detected{% endif %}">
+                                    <span class="detection-name">
+                                        {{ item.label }}
+                                        {% if item.crop_available %}
+                                        <a href="#" class="view-crop-link" data-crop="{{ item.label_key }}" title="{{ t.view_crop }}">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                                <polyline points="15 3 21 3 21 9"></polyline>
+                                                <line x1="10" y1="14" x2="21" y2="3"></line>
+                                            </svg>
+                                        </a>
+                                        {% endif %}
+                                    </span>
+                                    <span class="detection-conf {% if item.confidence >= 80 %}high{% elif item.confidence >= 50 %}medium{% else %}low{% endif %}">
+                                        {% if item.detected %}{{ item.confidence }}%{% else %}{{ t.not_detected }}{% endif %}
+                                    </span>
+                                </li>
+                                {% endfor %}
+                            {% else %}
+                                <!-- Fallback to document-based detection -->
+                                <li><span class="detection-name">{{ t.vehicle }}</span><span class="detection-conf">{{ (confidence_scores.object_detection * 100)|int }}%</span></li>
+                                {% if doc_summary.vehicle.kenteken and doc_summary.vehicle.kenteken != t.not_available %}
+                                <li><span class="detection-name">{{ t.license_plate }}</span><span class="detection-conf">{{ (confidence_scores.text_recognition * 100)|int }}%</span></li>
+                                {% endif %}
+                                {% if doc_summary.violation.code and doc_summary.violation.code != t.not_specified %}
+                                <li><span class="detection-name">{{ t.sign }} {{ doc_summary.violation.code }}</span><span class="detection-conf">{{ (confidence_scores.legal_reasoning * 100)|int }}%</span></li>
+                                {% endif %}
+                            {% endif %}
+                        </ul>
+                    </div>
+                    {% else %}
+                    <!-- MLLM Mode - Claude Vision Analysis -->
+                    <div class="detected-items mllm-results">
+                        <h5>{{ t.detected_items }} (MLLM)</h5>
+                        {% if detected_items_ui and detected_items_ui['items'] %}
+                        <ul class="detection-list" id="detectionList">
+                            {% for item in detected_items_ui['items'] %}
+                            <li class="{% if not item.detected %}not-detected{% endif %}">
+                                <span class="detection-name">
+                                    {{ item.label }}
+                                    {% if item.extracted_text %}
+                                    <small class="extracted-value">{{ item.extracted_text }}</small>
+                                    {% endif %}
+                                    {% if item.sign_code %}
+                                    <small class="extracted-value">{{ item.sign_code }}</small>
+                                    {% endif %}
+                                </span>
+                                <span class="detection-conf {% if item.confidence >= 80 %}high{% elif item.confidence >= 50 %}medium{% else %}low{% endif %}">
+                                    {% if item.detected %}{{ item.confidence }}%{% else %}{{ t.not_detected }}{% endif %}
+                                </span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <div class="mllm-error">
+                            <p>{{ t.mllm_coming_soon }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- MLLM Verification Summary -->
+                    {% if sam3_results and sam3_results.mllm_mode and sam3_results.verification %}
+                    <div class="mllm-verification-box">
+                        <h5>{{ t.verification_status if t.verification_status else 'Verification' }}</h5>
+                        <div class="verification-indicator {% if sam3_results.verification.observation_supported %}verified{% else %}warning{% endif %}">
+                            {% if sam3_results.verification.observation_supported %}
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                            <span>{{ t.observation_supported if t.observation_supported else 'Evidence supports observation' }}</span>
+                            {% else %}
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                            </svg>
+                            <span>{{ t.discrepancies_found if t.discrepancies_found else 'Discrepancies found' }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="verification-confidence">
+                            <span>{{ t.confidence }}:</span>
+                            <strong>{{ (sam3_results.verification.overall_confidence * 100)|int }}%</strong>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+
+                    <!-- Extracted Text -->
+                    {% if doc_summary.vehicle.kenteken and doc_summary.vehicle.kenteken != t.not_available %}
+                    <div class="extracted-text-box">
+                        <h5>{{ t.extracted_text }}</h5>
+                        <div class="plate-display">{{ doc_summary.vehicle.kenteken }}</div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Image Thumbnails -->
+                    <div class="thumbnail-strip">
+                        {% for img in extracted_images %}
+                        <div class="thumb {% if loop.first %}selected{% endif %}"
+                             data-index="{{ loop.index0 }}"
+                             data-filename="{{ img }}"
+                             data-page="{{ images_metadata[loop.index0].page if images_metadata else '-' }}"
+                             data-method="{{ images_metadata[loop.index0].method if images_metadata else '-' }}"
+                             data-width="{{ images_metadata[loop.index0].width if images_metadata else '-' }}"
+                             data-height="{{ images_metadata[loop.index0].height if images_metadata else '-' }}"
+                             {% if sam3_results and sam3_results.per_image %}
+                             data-sam3-id="{{ sam3_results.per_image.keys()|list|first if loop.first else '' }}"
+                             {% endif %}>
+                            <img src="{{ url_for('data_file', filename=img) }}" alt="Evidence {{ loop.index }}">
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="no-images-placeholder">
+                        <p>{{ t.no_images_available }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Confidence Summary -->
+                <div class="confidence-card">
+                    <h4>{{ t.confidence_scores }}</h4>
+                    <div class="confidence-list">
+                        <div class="confidence-item">
+                            <div class="conf-header">
+                                <span>{{ t.object_detection }}</span>
+                                <strong>{{ (confidence_scores.object_detection * 100)|int }}%</strong>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: {{ (confidence_scores.object_detection * 100)|int }}%"></div>
+                            </div>
+                        </div>
+                        <div class="confidence-item">
+                            <div class="conf-header">
+                                <span>{{ t.text_recognition }}</span>
+                                <strong>{{ (confidence_scores.text_recognition * 100)|int }}%</strong>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: {{ (confidence_scores.text_recognition * 100)|int }}%"></div>
+                            </div>
+                        </div>
+                        <div class="confidence-item">
+                            <div class="conf-header">
+                                <span>{{ t.legal_reasoning }}</span>
+                                <strong>{{ (confidence_scores.legal_reasoning * 100)|int }}%</strong>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: {{ (confidence_scores.legal_reasoning * 100)|int }}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <p class="footer-note">City of Amsterdam 2026</p>
-        <a href="/" class="back-link">← Start nieuwe analyse</a>
-    </footer>
+    </div>
+
+    <!-- ==================== DOCUMENT SUMMARY TAB ==================== -->
+    <div class="tab-content" id="tab-summary">
+        <div class="summary-layout">
+            <!-- Left Column: Structured Fields -->
+            <div class="summary-main">
+                <!-- Case Identifiers -->
+                <div class="summary-card">
+                    <h4>{{ t.case_identifiers }}</h4>
+                    <div class="field-grid">
+                        <div class="field-item">
+                            <span class="field-label">{{ t.sequence_number }}</span>
+                            <span class="field-value">{{ doc_summary.case.volgnummer or t.not_available }}</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-label">{{ t.ticket_number }}</span>
+                            <span class="field-value">{{ doc_summary.case.bonnummer or t.not_available }}</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-label">{{ t.status }}</span>
+                            <span class="field-value status-badge">{{ doc_summary.case.status or t.unknown }}</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-label">{{ t.date_time }}</span>
+                            <span class="field-value">{{ doc_summary.case.datum_tijd or t.not_available }}</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-label">{{ t.employee }}</span>
+                            <span class="field-value">{{ doc_summary.case.medewerker or t.not_available }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Location -->
+                <div class="summary-card">
+                    <h4>{{ t.location }}</h4>
+                    <div class="field-grid">
+                        <div class="field-item">
+                            <span class="field-label">{{ t.city }}</span>
+                            <span class="field-value">{{ doc_summary.location.plaats or 'Amsterdam' }}</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-label">{{ t.district }}</span>
+                            <span class="field-value">{{ doc_summary.location.stadsdeel or t.not_available }}</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-label">{{ t.neighborhood }}</span>
+                            <span class="field-value">{{ doc_summary.location.buurt or t.not_available }}</span>
+                        </div>
+                        <div class="field-item full-width">
+                            <span class="field-label">{{ t.street }}</span>
+                            <span class="field-value">{{ doc_summary.location.straat or t.not_available }} {{ doc_summary.location.locatie_nr or '' }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Violation -->
+                <div class="summary-card violation-card">
+                    <h4>{{ t.violation }}</h4>
+                    <div class="violation-display">
+                        <div class="violation-sign">
+                            <span class="sign-code">{{ doc_summary.violation.code or '?' }}</span>
+                        </div>
+                        <div class="violation-info">
+                            <div class="field-item">
+                                <span class="field-label">{{ t.description }}</span>
+                                <span class="field-value">{{ doc_summary.violation.description or t.not_available }}</span>
+                            </div>
+                            <div class="field-item">
+                                <span class="field-label">{{ t.clarification }}</span>
+                                <span class="field-value">{{ doc_summary.violation.toelichting or t.none }}</span>
+                            </div>
+                            {% if doc_summary.violation.reden_verwijdering and doc_summary.violation.reden_verwijdering != t.not_available %}
+                            <div class="field-item">
+                                <span class="field-label">{{ t.removal_reason }}</span>
+                                <span class="field-value">{{ doc_summary.violation.reden_verwijdering }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vehicle -->
+                <div class="summary-card">
+                    <h4>{{ t.vehicle_info }}</h4>
+                    <div class="field-grid">
+                        <div class="field-item">
+                            <span class="field-label">{{ t.license_plate_label }}</span>
+                            <span class="field-value plate-value">{{ doc_summary.vehicle.kenteken or t.not_available }}</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-label">{{ t.brand }}</span>
+                            <span class="field-value">{{ doc_summary.vehicle.merk or t.not_available }}</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-label">{{ t.model }}</span>
+                            <span class="field-value">{{ doc_summary.vehicle.model or t.not_available }}</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-label">{{ t.color }}</span>
+                            <span class="field-value">{{ doc_summary.vehicle.kleur or t.not_available }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Officer Observation -->
+                <div class="summary-card">
+                    <h4>{{ t.officer_observation }}</h4>
+                    <div class="observation-box">
+                        {% if doc_summary.officer_observation %}
+                        <p>{{ doc_summary.officer_observation }}</p>
+                        <span class="source-badge document">{{ t.from_document }}</span>
+                        {% else %}
+                        <p class="no-data">{{ t.no_observation }}</p>
+                        <span class="source-badge missing">{{ t.missing_data }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Related Registrations -->
+                {% if doc_summary.related_registrations %}
+                <div class="summary-card">
+                    <h4>{{ t.related_registrations }}</h4>
+                    <table class="registrations-table">
+                        <thead>
+                            <tr>
+                                <th>{{ t.type }}</th>
+                                <th>{{ t.reference }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for reg in doc_summary.related_registrations %}
+                            <tr>
+                                <td>{{ reg.type }}</td>
+                                <td>{{ reg.reference }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Right Column: Evidence Images + Export -->
+            <div class="summary-sidebar">
+                <!-- Evidence Images -->
+                <div class="evidence-card">
+                    <h4>{{ t.evidence_images }} ({{ extracted_images|length }})</h4>
+                    {% if extracted_images %}
+                    <div class="evidence-grid">
+                        {% for img in extracted_images %}
+                        <div class="evidence-item">
+                            <img src="{{ url_for('data_file', filename=img) }}" alt="Evidence {{ loop.index }}">
+                            <div class="evidence-meta">
+                                <span class="evidence-name">{{ img|truncate(25) }}</span>
+                                <span class="evidence-info">{{ t.page }} {{ images_metadata[loop.index0].page if images_metadata else '-' }} | {{ images_metadata[loop.index0].method if images_metadata else '-' }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="no-evidence">
+                        <p>{{ t.no_images_extracted }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Export Actions -->
+                <div class="export-card">
+                    <h4>{{ t.export_options }}</h4>
+                    <div class="export-buttons">
+                        <button class="btn btn-primary" id="downloadPdfBtn">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            {{ t.download_pdf_report }}
+                        </button>
+                        <button class="btn btn-outline" id="exportJsonBtn">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                            </svg>
+                            {{ t.export_json }}
+                        </button>
+                        <button class="btn btn-outline" id="downloadImagesBtn">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                <polyline points="21 15 16 10 5 21"></polyline>
+                            </svg>
+                            {{ t.download_images }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Actions Bar -->
+    <div class="bottom-actions">
+        <a href="/" class="btn btn-outline back-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            {{ t.new_analysis }}
+        </a>
+        <span class="footer-note">{{ t.footer }}</span>
+    </div>
 </main>
+
+<!-- Hidden data for JS -->
+<script id="docSummaryData" type="application/json">
+{{ doc_summary | tojson | safe }}
+</script>
+<script id="reportSectionsData" type="application/json">
+{{ report_sections | tojson | safe }}
+</script>
+<script id="confidenceData" type="application/json">
+{{ confidence_scores | tojson | safe }}
+</script>
+{% if sam3_results %}
+<script id="sam3Data" type="application/json">
+{{ sam3_results | tojson | safe }}
+</script>
+{% endif %}
+{% if detected_items_ui %}
+<script id="detectedItemsData" type="application/json">
+{{ detected_items_ui | tojson | safe }}
+</script>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Get SAM3 data if available
+    const sam3DataEl = document.getElementById('sam3Data');
+    const sam3Data = sam3DataEl ? JSON.parse(sam3DataEl.textContent) : null;
+
+    // Translation strings (passed from server)
+    const translations = {
+        showOverlay: '{{ t.show_overlay }}',
+        hideOverlay: '{{ t.hide_overlay }}',
+        detected: '{{ t.detected }}',
+        notDetected: '{{ t.not_detected }}'
+    };
+
+    // Track current state
+    let currentImageFilename = '{{ extracted_images[0] if extracted_images else "" }}';
+    let showingOverlay = false;
+
+    // Tab switching
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetTab = btn.dataset.tab;
+
+            // Update buttons
+            tabBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // Update content
+            tabContents.forEach(content => {
+                content.classList.remove('active');
+                if (content.id === 'tab-' + targetTab) {
+                    content.classList.add('active');
+                }
+            });
+        });
+    });
+
+    // Image thumbnail selection with SAM3 integration
+    const thumbs = document.querySelectorAll('.thumb');
+    const inspectorImage = document.getElementById('inspectorImage');
+    const inspectorFilename = document.getElementById('inspectorFilename');
+    const inspectorPage = document.getElementById('inspectorPage');
+    const inspectorMethod = document.getElementById('inspectorMethod');
+    const inspectorSize = document.getElementById('inspectorSize');
+
+    thumbs.forEach(thumb => {
+        thumb.addEventListener('click', () => {
+            // Update selection
+            thumbs.forEach(t => t.classList.remove('selected'));
+            thumb.classList.add('selected');
+
+            // Update inspector
+            const filename = thumb.dataset.filename;
+            currentImageFilename = filename;
+
+            // Reset overlay state
+            showingOverlay = false;
+            const overlayBtn = document.getElementById('toggleOverlay');
+            if (overlayBtn) {
+                overlayBtn.dataset.showing = 'false';
+                document.getElementById('overlayBtnText').textContent = translations.showOverlay;
+            }
+
+            inspectorImage.src = '/data/' + filename;
+            inspectorFilename.textContent = filename;
+            inspectorPage.textContent = thumb.dataset.page;
+            inspectorMethod.textContent = thumb.dataset.method;
+            inspectorSize.textContent = thumb.dataset.width + ' x ' + thumb.dataset.height;
+        });
+    });
+
+    // SAM3 Overlay Toggle
+    const toggleOverlayBtn = document.getElementById('toggleOverlay');
+    if (toggleOverlayBtn && sam3Data) {
+        toggleOverlayBtn.addEventListener('click', () => {
+            showingOverlay = !showingOverlay;
+            toggleOverlayBtn.dataset.showing = showingOverlay ? 'true' : 'false';
+            document.getElementById('overlayBtnText').textContent =
+                showingOverlay ? translations.hideOverlay : translations.showOverlay;
+
+            if (showingOverlay) {
+                // Find overlay URL for current image
+                const perImage = sam3Data.per_image || {};
+                for (const [imageId, result] of Object.entries(perImage)) {
+                    if (result.filename === currentImageFilename && result.overlay_url) {
+                        inspectorImage.src = result.overlay_url;
+                        break;
+                    }
+                }
+            } else {
+                // Show original image
+                inspectorImage.src = '/data/' + currentImageFilename;
+            }
+        });
+    }
+
+    // View crop links
+    document.querySelectorAll('.view-crop-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const cropType = link.dataset.crop;
+
+            if (sam3Data && sam3Data.per_image) {
+                for (const [imageId, result] of Object.entries(sam3Data.per_image)) {
+                    if (result.filename === currentImageFilename) {
+                        const rois = result.derived_rois || {};
+                        const cropUrl = rois[cropType + '_crop_url'];
+                        if (cropUrl) {
+                            // Open crop in new window/modal
+                            window.open(cropUrl, '_blank', 'width=400,height=300');
+                        }
+                        break;
+                    }
+                }
+            }
+        });
+    });
+
+    // Copy to clipboard
+    const copyBtns = document.querySelectorAll('.copy-btn');
+    copyBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const section = btn.closest('.report-section');
+            const content = section.querySelector('.editable-content, p').textContent;
+            navigator.clipboard.writeText(content).then(() => {
+                btn.classList.add('copied');
+                setTimeout(() => btn.classList.remove('copied'), 2000);
+            });
+        });
+    });
+
+    // Export JSON
+    document.getElementById('exportJsonBtn')?.addEventListener('click', () => {
+        const docSummary = JSON.parse(document.getElementById('docSummaryData').textContent);
+        const reportSections = JSON.parse(document.getElementById('reportSectionsData').textContent);
+        const confidence = JSON.parse(document.getElementById('confidenceData').textContent);
+
+        const exportData = {
+            document_summary: docSummary,
+            report_sections: reportSections,
+            confidence_scores: confidence,
+            exported_at: new Date().toISOString()
+        };
+
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'parking-case-export.json';
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+
+    // Editable content auto-save indicator
+    const editables = document.querySelectorAll('.editable-content');
+    editables.forEach(el => {
+        el.addEventListener('input', () => {
+            el.classList.add('modified');
+        });
+    });
+});
+</script>
 {% endblock %}
