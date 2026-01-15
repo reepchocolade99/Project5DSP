@@ -13,19 +13,24 @@
         <div class="main-grid">
             
             <div class="card upload-card">
-                <h3>Upload File</h3>
-                <div class="file-input-wrapper">
-                    <input type="file" name="file" id="fileInput" accept="image/*" />
+                <h3 class="card-title">Upload File</h3>
+                <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                    <div class="upload-icon">📄</div>
+                    <p><strong>Drag & drop your files here</strong></p>
+                    <p>or click to browse</p>
+                    
+                    <input type="file" id="fileInput" name="file" accept="image/*" style="display: none;" onchange="handleFileSelect(this)" />
+                    
+                    <div id="fileNameDisplay" style="margin-top: 10px; font-size: 0.9rem; color: var(--ams-red); font-weight: bold;"></div>
                 </div>
-                <p id="errorMessage" style="color: #ec0000; font-size: 0.85rem; margin-top: 10px; display: none;">
-                    Please select an image file before submitting.
+                
+                <p id="errorMessage" style="color: #ec0000; font-size: 0.85rem; margin-top: 10px; display: none; font-weight: bold;">
+                    Please select an image file before starting the analysis.
                 </p>
             </div>
 
             <div class="card settings-card">
-                <div class="settings-header">
-                    <h3>Settings</h3>
-                </div>
+                <h3 class="card-title">Settings</h3>
                 
                 <div class="setting-group">
                     <label>Language</label>
@@ -58,40 +63,58 @@
                     </div>
                 </div>
 
-                <div class="setting-group">
-                    <label>Model Type</label>
-                    <select name="model">
-                        <option value="mllm">MLLM</option>
-                    </select>
-                    <small>Multi-modal large language model</small>
+                <div class="button-wrapper">
+                    <button type="submit" class=".btn-start-analysis">
+                        Start Analysis <span class="arrow">→</span>
+                    </button>
                 </div>
-
-                <button type="submit" class="btn btn-primary full-width">
-                    Start Analysis & Save Settings
-                </button>
             </div>
         </div>
     </form>
 </main>
 
 <script>
-    // Validatie: check of er een bestand is voor het verzenden
-    document.getElementById('uploadForm').onsubmit = function(e) {
-        const fileInput = document.getElementById('fileInput');
-        const errorMessage = document.getElementById('errorMessage');
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const errorMessage = document.getElementById('errorMessage');
+    const fileNameDisplay = document.getElementById('fileNameDisplay');
 
-        if (fileInput.files.length === 0) {
-            e.preventDefault(); 
-            errorMessage.style.display = 'block';
-            // Scroll terug naar het bestandveld zodat de gebruiker de fout ziet
-            fileInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            return false;
+    // Drag & drop visual feedback
+    dropZone.ondragover = (e) => {
+        e.preventDefault();
+        dropZone.classList.add('drag-over');
+    };
+
+    dropZone.ondragleave = () => {
+        dropZone.classList.remove('drag-over');
+    };
+
+    dropZone.ondrop = (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        if (e.dataTransfer.files.length > 0) {
+            fileInput.files = e.dataTransfer.files;
+            handleFileSelect(fileInput);
         }
     };
 
-    // Verberg melding bij selectie
-    document.getElementById('fileInput').onchange = function() {
-        document.getElementById('errorMessage').style.display = 'none';
+    // Update display en verberg error als bestand gekozen is
+    function handleFileSelect(input) {
+        if (input.files.length > 0) {
+            errorMessage.style.display = 'none';
+            fileNameDisplay.innerText = "Selected: " + input.files[0].name;
+        }
+    }
+
+    // De submit check (Java/Javascript functie)
+    document.getElementById('uploadForm').onsubmit = function(e) {
+        if (fileInput.files.length === 0) {
+            e.preventDefault(); 
+            errorMessage.style.display = 'block';
+            // Scroll naar de error op kleine schermen
+            errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return false;
+        }
     };
 </script>
 {% endblock %}

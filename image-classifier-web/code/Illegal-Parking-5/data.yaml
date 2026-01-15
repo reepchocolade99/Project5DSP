@@ -1,0 +1,14 @@
+names:
+- Illegal-parking
+- Slot-empty
+- Slot-occupied
+nc: 3
+roboflow:
+  license: BY-NC-SA 4.0
+  project: illegal-parking
+  url: https://universe.roboflow.com/parking-amu50/illegal-parking/dataset/5
+  version: 5
+  workspace: parking-amu50
+test: ../test/images
+train: ../train/images
+val: ../valid/images

@@ -1,14 +1,19 @@
-/* Kleurenpalet Gemeente Amsterdam */
+/* ==========================================================================
+   1. VARIABELEN & BASIS (AMSTERDAM DESIGN SYSTEM)
+   ========================================================================== */
 :root {
     --ams-red: #ec0000;
+    --ams-blue: #084390;
+    --ams-blue-hover: #063471;
     --ams-black: #000000;
     --ams-grey: #f3f3f3;
-    --ams-dark-grey: #333333;
+    --ams-white: #ffffff;
     --border-color: #d8d8d8;
 }
 
-body, .logotext {
-    font-family: "Amsterdam Sans", arial, sans-serif;margin: 0;
+body {
+    font-family: "Amsterdam Sans", Arial, sans-serif;
+    margin: 0;
     background-color: var(--ams-grey);
     color: var(--ams-black);
     -webkit-font-smoothing: antialiased;
@@ -20,68 +25,69 @@ body, .logotext {
     padding: 0 20px;
 }
 
-/* Header */
+/* ==========================================================================
+   2. HEADER & LOGO
+   ========================================================================== */
 .ams-header {
-    background: white;
+    background: var(--ams-white);
     padding: 20px 0;
     border-bottom: 4px solid var(--ams-red);
 }
 
-.logo {
+.logo-wrapper {
     display: flex;
-    align-items: center;
+    align-items: flex-start; 
+    gap: 12px;
 }
 
-.xxx {
-    color: var(--ams-red);
-    font-size: 2rem;
-    font-weight: bold;
-    letter-spacing: 2px;
-    margin-right: 15px;
+.ams-logo {
+    height: 60px; 
+    width: auto;
 }
 
-.logo-text {
-    font-weight: bold;
-    line-height: 1.1;
+.ams-logo-text {
+    display: flex;
+    flex-direction: column;
+    font-weight: 700;
     text-transform: uppercase;
+    line-height: 0.9; 
+    color: var(--ams-red);
 }
 
-/* Layout */
-.hero { margin: 40px 0; }
-.hero h1 { font-size: 2.5rem; margin-bottom: 10px; }
-
+/* ==========================================================================
+   3. LAYOUT: CARDS & GRIDS
+   ========================================================================== */
 .main-grid {
-    display: grid;
-    grid-template-columns: 1.5fr 1fr;
-    gap: 30px;
-    align-items: start;
+    display: flex;
+    gap: 15px;
+    margin-top: 40px;
 }
 
 .card {
-    background: white;
+    flex: 1;
+    background: var(--ams-white);
     padding: 30px;
-    border-radius: 4px; /* Amsterdam gebruikt minder ronde hoeken */
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-top: 5px solid var(--ams-black);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
-/* Settings specifieke styling */
-.settings-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
-
+/* ==========================================================================
+   4. FORMULIER ELEMENTEN & SETTINGS
+   ========================================================================== */
 .setting-group { margin-bottom: 25px; }
 .setting-group label { display: block; font-weight: bold; margin-bottom: 8px; }
-.setting-group small { color: #666; display: block; margin-top: 4px; }
 
-/* Inputs */
 select {
     width: 100%;
     padding: 12px;
     border: 1px solid var(--border-color);
-    background: #fff;
-    font-size: 1rem;
+    background: var(--ams-white);
 }
 
-.toggle-group { display: flex; justify-content: space-between; align-items: center; }
-.switch { position: relative; width: 50px; height: 26px; }
+/* Custom Switch */
+.switch { position: relative; width: 50px; height: 26px; display: inline-block; }
 .switch input { opacity: 0; width: 0; height: 0; }
 .slider {
     position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
@@ -91,121 +97,172 @@ select {
     position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px;
     background-color: white; transition: .4s; border-radius: 50%;
 }
-input:checked + .slider { background-color: var(--ams-black); }
+input:checked + .slider { background-color: var(--ams-red); }
 input:checked + .slider:before { transform: translateX(24px); }
 
-/* Buttons */
-.btn {
-    padding: 12px 24px;
-    font-weight: bold;
-    cursor: pointer;
-    border: 2px solid var(--ams-black);
-    text-align: center;
-    transition: 0.2s;
+/* ==========================================================================
+   5. RAPPORT LAYOUT (RESULTATENPAGINA)
+   ========================================================================== */
+.report-container {
+    background: var(--ams-white);
+    padding: 40px;
+    margin: 20px auto;
 }
 
-.btn-primary { background: var(--ams-black); color: white; }
-.btn-primary:hover { background: var(--ams-dark-grey); }
-
-.btn-outline { background: white; color: var(--ams-black); }
-.full-width { width: 100%; margin-top: 10px; }
-
-.logo-wrapper {
+.header-main {
     display: flex;
-    align-items: flex-start; 
-    gap: 12px;
-    padding-top: 5px; 
-}
-.ams-logo {
-    height: 60px; 
-    width: auto;
-    display: block;
-    margin: 0;
+    gap: 30px;
+    align-items: flex-start;
 }
 
-.ams-logo-text {
+.report-thumbnail {
+    flex: 0 0 200px; /* Kleine foto aan de zijkant */
+    width: 200px;
+    border: 1px solid var(--border-color);
+}
+
+.ams-divider {
+    border: 0;
+    border-top: 1px solid var(--border-color);
+    margin: 25px 0;
+}
+
+.report-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Twee kolommen tekst */
+    gap: 40px;
+}
+
+/* Kopjes met rode Amsterdamse streep */
+.report-column h4, .score-title, .report-footer h4 {
+    border-bottom: 2px solid var(--ams-red);
+    display: block;
+    padding-bottom: 8px;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+/* Confidence Scores (Zwarte balkjes) */
+.score-item { margin-bottom: 15px; }
+.score-info { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 5px; }
+.progress-bg { background: #e0e0e0; height: 8px; }
+.progress-fill { background: var(--ams-black); height: 100%; }
+
+/* Blauwe wetgeving tags */
+.ams-tag {
+    background: #e8f0fe;
+    color: var(--ams-blue);
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-right: 5px;
+}
+
+/* ==========================================================================
+   6. KNOPPEN & ACTIES
+   ========================================================================== */
+
+
+.drop-zone {
+    border: 2px dashed var(--border-color);
+    background-color: var(--ams-grey);
+    padding: 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
     display: flex;
     flex-direction: column;
-    font-weight: 700;
-    text-transform: uppercase;
-    font-family: "Amsterdam Sans", arial, sans-serif;
-    line-height: 0.9; 
-    margin-top: 2px;
+    align-items: center;
+    justify-content: center;
+    min-height: 250px;
 }
 
-.ams-logo-text span {
-    font-size: 14px; 
-    display: block;
+.drop-zone:hover {
+    border-color: var(--ams-blue);
+    background-color: #f0f7ff;
 }
 
-.logo-divider {
+/* Verberg de lelijke standaard browser knop */
+#fileInput {
+    position: absolute;
     width: 1px;
-    height: 30px;
-    background-color: var(--border-color);
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
 }
 
-.service-name {
-    font-weight: 700;
-    font-size: 1.2rem;
-    color: var(--ams-black);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-/* Navigatie subtiel houden */
-.ams-nav {
-    font-size: 0.9rem;
+.custom-file-upload {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--ams-blue);
+    color: var(--ams-white);
+    padding: 12px 24px;
+    font-size: 1rem;
     font-weight: 500;
-    color: var(--ams-dark-grey);
-    border-bottom: 1px solid var(--ams-black);
+    cursor: pointer;
+    margin-top: 15px;
+    border-radius: 0; /* Strakke Amsterdamse hoeken */
+    transition: background 0.2s;
+}
+
+.custom-file-upload:hover {
+    background-color: var(--ams-blue-hover);
+    text-decoration: underline;
+}
+
+.upload-icon {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    color: var(--ams-black);
+}
+
+/* Primaire Blauwe Knop (Ga naar overheid / Start analyse) */
+.btn-start-analysis, .btn-primary {
+    background-color: var(--ams-blue);
+    color: var(--ams-white);
+    border: none;
+    padding: 12px 24px;
+    font-size: 1rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    margin-left: auto; /* Duwt knop naar rechts in flexbox */
+    border-radius: 0; /* Strakke hoeken */
+    transition: background 0.2s;
+}
+
+.btn-start-analysis:hover, .btn-primary:hover {
+    background-color: var(--ams-blue-hover);
+    text-decoration: underline;
+}
+
+.btn-start-analysis::after {
+    content: " →";
+    margin-left: 8px;
+    font-size: 1.2rem;
+}
+
+/* Download knoppen zonder iconen */
+.btn-outline {
+    background: var(--ams-white);
+    border: 1px solid var(--border-color);
+    color: var(--ams-black);
+    padding: 10px 20px;
     cursor: pointer;
 }
 
-/* Upload Card extra Amsterdam accent */
-.upload-card {
-    border-top: 4px solid var(--ams-black);
+.btn-outline i, .btn-outline img { display: none; } /* Verwijder iconen */
+
+.back-link {
+    color: var(--ams-blue);
+    text-decoration: none;
+    font-weight: 500;
+    display: inline-block;
+    margin-top: 20px;
 }
-
-/* Settings Card extra Amsterdam accent */
-.settings-card {
-    border-top: 4px solid var(--ams-black);
-}
-
-
-
-
-
-
-/* Results HTML */
-
-/* Rapport Container Styling */
-.report-container {
-    background: white;
-    margin-top: 30px;
-    margin-bottom: 50px;
-    padding: 40px;
-    border-radius: 4px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-}
-
-.header-main { display: flex; gap: 30px; align-items: flex-start; }
-.report-thumbnail { width: 220px; border-radius: 4px; border: 1px solid #ddd; }
-.header-info h3 { margin-top: 0; font-size: 1.4rem; color: #000; }
-
-.metadata-grid p { margin: 5px 0; font-size: 0.9rem; color: #444; }
-.ams-divider { border: 0; border-top: 1px solid #eee; margin: 30px 0; }
-
-/* Grid Layout */
-.report-grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 40px; }
-h4 { border-bottom: 2px solid #ec0000; display: inline-block; padding-bottom: 4px; margin-bottom: 20px; text-transform: uppercase; font-size: 0.9rem; }
-
-/* Scores */
-.score-item { margin-bottom: 18px; }
-.score-info { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px; }
-.progress-bg { background: #f0f0f0; height: 10px; border-radius: 5px; overflow: hidden; }
-.progress-fill { background: #000; height: 100%; transition: width 1s ease-in-out; }
-
-/* Tags & Buttons */
-.ams-tag { background: #e8f0fe; color: #1a73e8; padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; margin-right: 5px; }
-.button-group { display: flex; gap: 15px; margin: 20px 0; }
-.back-link { display: block; margin-top: 20px; color: #ec0000; text-decoration: none; font-weight: bold; }

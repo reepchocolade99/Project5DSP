@@ -1,0 +1,11 @@
+
+path: /Users/merlijne/Documents/Studie/Master_DS/DSP/Project5DSP/data/nederlandse_overtredingen
+train: train/images
+val: val/images
+
+names:
+  0: car-in-box
+  1: charging-cable
+  2: trunk-open
+  3: disabled-card
+  4: covered-sign

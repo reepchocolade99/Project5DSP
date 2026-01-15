@@ -9,4 +9,3 @@ imageInput.addEventListener('change', () => {
   preview.src = url;
   preview.hidden = false;
 });
-// Submission is handled by the form; preview is all that's needed on this page.
