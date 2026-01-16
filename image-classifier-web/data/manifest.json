@@ -1,0 +1,103 @@
+{
+  "source_pdf": "/Users/berkbahcetepe/Desktop/dsp/Project5DSP/image-classifier-web/uploads/Proces_verbaal_wegslepenvoertuiggeanonimiseerd.pdf",
+  "extraction_time_utc": "2026-01-13T19:58:28.586784+00:00",
+  "images": [
+    {
+      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p03_img01_v25.jpg",
+      "page": 3,
+      "index_on_page": 1,
+      "method": "embedded",
+      "width": 461,
+      "height": 1023
+    },
+    {
+      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p03_img02_v25.jpg",
+      "page": 3,
+      "index_on_page": 2,
+      "method": "embedded",
+      "width": 1023,
+      "height": 461
+    },
+    {
+      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p04_img01_v25.jpg",
+      "page": 4,
+      "index_on_page": 1,
+      "method": "embedded",
+      "width": 1023,
+      "height": 461
+    },
+    {
+      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p04_img02_v25.jpg",
+      "page": 4,
+      "index_on_page": 2,
+      "method": "embedded",
+      "width": 1023,
+      "height": 461
+    },
+    {
+      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p04_img03_v25.jpg",
+      "page": 4,
+      "index_on_page": 3,
+      "method": "embedded",
+      "width": 1023,
+      "height": 461
+    },
+    {
+      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p04_img04_v25.jpg",
+      "page": 4,
+      "index_on_page": 4,
+      "method": "embedded",
+      "width": 1023,
+      "height": 461
+    },
+    {
+      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p04_img05_v25.jpg",
+      "page": 4,
+      "index_on_page": 5,
+      "method": "embedded",
+      "width": 1023,
+      "height": 461
+    },
+    {
+      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p04_img06_v25.jpg",
+      "page": 4,
+      "index_on_page": 6,
+      "method": "embedded",
+      "width": 480,
+      "height": 290
+    },
+    {
+      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p04_img07_v25.jpg",
+      "page": 4,
+      "index_on_page": 7,
+      "method": "embedded",
+      "width": 1023,
+      "height": 461
+    },
+    {
+      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p04_img08_v25.jpg",
+      "page": 4,
+      "index_on_page": 8,
+      "method": "embedded",
+      "width": 1023,
+      "height": 461
+    },
+    {
+      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p04_img09_v25.jpg",
+      "page": 4,
+      "index_on_page": 9,
+      "method": "embedded",
+      "width": 1023,
+      "height": 461
+    },
+    {
+      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p04_img10_v25.jpg",
+      "page": 4,
+      "index_on_page": 10,
+      "method": "embedded",
+      "width": 1023,
+      "height": 461
+    }
+  ],
+  "notes": []
+}
