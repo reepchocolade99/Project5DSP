@@ -1,7 +1,11 @@
 from flask import Flask, request, jsonify, render_template, send_from_directory
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
+from dotenv import load_dotenv
 import os
+
+# Load environment variables from .env file
+load_dotenv()
 import json
 import re
 from datetime import datetime
