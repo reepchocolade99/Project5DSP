@@ -25,7 +25,13 @@ Analyze the image(s) and report:
    - Position on the road/parking area
 
 2. TRAFFIC SIGN OBSERVATION:
-   - Which sign(s) visible? (E6, E7, E9, G7, etc.)
+   - Which sign(s) visible? Use this identification guide:
+     * E6 = Disabled parking: Blue sign with WHITE WHEELCHAIR SYMBOL (♿)
+     * E7 = Loading/unloading zone: Blue sign with truck/cargo symbol
+     * E9 = Permit holders parking: Blue "P" sign with text "vergunninghouders" or permit holder text (NO wheelchair symbol)
+     * G7 = Pedestrian area/footpath: Blue sign with pedestrian symbol
+     * E4 = Parking facility: Blue "P" sign without permit text
+   - CRITICAL: E6 has a WHEELCHAIR symbol, E9 does NOT have a wheelchair symbol
    - Is a sub-sign present? If so, what does it say?
    - Approximate distance from vehicle to sign
 
@@ -121,7 +127,13 @@ Analyseer de afbeelding(en) en rapporteer:
    - Positie op de weg/parkeerplaats
 
 2. VERKEERSBORD OBSERVATIE:
-   - Welk(e) bord(en) zichtbaar? (E6, E7, E9, G7, etc.)
+   - Welk(e) bord(en) zichtbaar? Gebruik deze identificatiegids:
+     * E6 = Gehandicaptenparkeerplaats: Blauw bord met WIT ROLSTOEL SYMBOOL (♿)
+     * E7 = Laden/lossen zone: Blauw bord met vrachtwagen/lading symbool
+     * E9 = Vergunninghouders parkeren: Blauw "P" bord met tekst "vergunninghouders" (GEEN rolstoel symbool)
+     * G7 = Voetgangersgebied: Blauw bord met voetganger symbool
+     * E4 = Parkeergelegenheid: Blauw "P" bord zonder vergunningtekst
+   - KRITIEK: E6 heeft een ROLSTOEL symbool, E9 heeft GEEN rolstoel symbool
    - Is er een onderbord aanwezig? Zo ja, wat staat erop?
    - Geschatte afstand van voertuig tot bord
 

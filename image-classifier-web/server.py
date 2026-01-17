@@ -21,6 +21,9 @@ from sam3_service import SAM3Analyzer, analyze_evidence_images
 # Import Claude Vision service for MLLM
 from claude_vision_service import ClaudeVisionService, analyze_parking_evidence
 
+# Import OpenAI Vision service for MLLM
+from openai_vision_service import OpenAIVisionService, analyze_parking_evidence_openai
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -359,7 +362,7 @@ TRANSLATIONS = {
         'model_type': 'Model Type',
         'model_desc_sam': 'Segmentatie-gebaseerde objectdetectie voor parkeerbewijzen',
         'model_desc_mllm': 'Claude Vision AI voor geavanceerde beeldanalyse',
-        'model_desc_openai': 'OpenAI GPT-4 Vision - Binnenkort beschikbaar',
+        'model_desc_openai': 'OpenAI GPT-4o Vision voor geavanceerde beeldanalyse',
         'model_desc_openai_sam': 'OpenAI + SAM gecombineerde pipeline - Binnenkort beschikbaar',
         'model_desc_mock': 'Testdata voor UI testen zonder API aanroepen',
         'mllm_coming_soon': 'MLLM analyse niet beschikbaar. Controleer API configuratie.',
@@ -424,7 +427,7 @@ TRANSLATIONS['en'].update({
     'model_type': 'Model Type',
     'model_desc_sam': 'Segmentation-based object detection for parking evidence',
     'model_desc_mllm': 'Claude Vision AI for advanced image analysis',
-    'model_desc_openai': 'OpenAI GPT-4 Vision - Coming Soon',
+    'model_desc_openai': 'OpenAI GPT-4o Vision for advanced image analysis',
     'model_desc_openai_sam': 'OpenAI + SAM combined pipeline - Coming Soon',
     'model_desc_mock': 'Mock data for UI testing without API calls',
     'mllm_coming_soon': 'MLLM analysis not available. Check API configuration.',
@@ -1160,9 +1163,9 @@ def predict():
     if lang not in ['en', 'nl']:
         lang = 'en'
 
-    # Get model type from form (sam, mllm, or mock)
+    # Get model type from form (sam, mllm, openai, or mock)
     model_type = request.form.get('model', 'mllm')
-    if model_type not in ['sam', 'mllm', 'mock']:
+    if model_type not in ['sam', 'mllm', 'openai', 'mock']:
         model_type = 'mllm'
 
     t = get_translations(lang)
@@ -1292,6 +1295,49 @@ def predict():
 
         except Exception as e:
             logger.error(f"MLLM analysis failed: {str(e)}")
+            # Continue without MLLM results
+    elif model_type == 'openai' and extracted_images:
+        # OpenAI MLLM analysis using GPT-4o Vision
+        try:
+            image_paths = [
+                os.path.join(app.config['DATA_FOLDER'], img)
+                for img in extracted_images
+            ]
+
+            # Run OpenAI Vision analysis
+            mllm_ui_data = analyze_parking_evidence_openai(
+                image_paths=image_paths,
+                doc_summary=doc_summary,
+                lang=lang,
+                max_images=10
+            )
+
+            # Extract results for template
+            if mllm_ui_data.get('mllm_analysis'):
+                detected_items_ui = mllm_ui_data.get('detected_items_ui')
+                sam3_results = {
+                    'mllm_mode': True,
+                    'openai_mode': True,  # Flag to indicate OpenAI provider
+                    'analysis': mllm_ui_data.get('mllm_analysis'),
+                    'summary': mllm_ui_data.get('summary'),
+                    'verification': mllm_ui_data.get('verification'),
+                    'image_description': mllm_ui_data.get('image_description'),
+                    'environmental_context': mllm_ui_data.get('environmental_context'),
+                    'metadata': mllm_ui_data.get('metadata'),
+                    # Legal Reasoning v2 fields
+                    'pipeline_version': mllm_ui_data.get('pipeline_version', '1.0'),
+                    'legal_assessment': mllm_ui_data.get('legal_assessment'),
+                    'legal_statement': mllm_ui_data.get('legal_statement'),
+                    'evidence_checklist': mllm_ui_data.get('evidence_checklist'),
+                    'recommendation': mllm_ui_data.get('recommendation'),
+                    'recommendation_ui': mllm_ui_data.get('recommendation_ui')
+                }
+                logger.info(f"OpenAI MLLM analysis completed (v{mllm_ui_data.get('pipeline_version', '1.0')}): {mllm_ui_data.get('metadata', {})}")
+            else:
+                logger.warning(f"OpenAI MLLM analysis failed: {mllm_ui_data.get('mllm_error')}")
+
+        except Exception as e:
+            logger.error(f"OpenAI MLLM analysis failed: {str(e)}")
             # Continue without MLLM results
     elif model_type == 'mock':
         # Mock mode - generate test data without API calls
