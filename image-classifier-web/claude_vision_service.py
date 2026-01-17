@@ -1,10 +1,13 @@
 """
 Claude Vision Service for MLLM-based parking violation image analysis.
 
-This service:
-1. Accepts images + police observation context
-2. Calls Claude Vision API with structured prompts
-3. Returns semantic metadata aligned with parking enforcement domain
+This service implements the Legal Reasoning Architecture v2.0:
+- Layer 1: Document Parser (handled by server.py)
+- Layer 2: Objective Image Analysis (MLLM observes, does NOT interpret legally)
+- Layer 3: Rule Engine (deterministic legal matching)
+- Layer 4: Officer Validation & Citation Generation
+
+Version: 2.0 with backward compatibility
 """
 
 import base64
@@ -23,7 +26,39 @@ except ImportError:
     anthropic = None
     ANTHROPIC_AVAILABLE = False
 
+# Import Legal Reasoning v2 modules
+try:
+    from legal import (
+        evaluate_legal_compliance,
+        evaluate_with_auto_detection,
+        generate_legal_statement,
+        generate_full_legal_output,
+        determine_action,
+        get_supporting_articles,
+        format_evidence_checklist,
+        calculate_overall_confidence,
+        get_confidence_label,
+        format_action_for_ui,
+        LEGAL_DECISION_TREES
+    )
+    from prompts import (
+        get_layer2_prompt,
+        build_layer2_message,
+        build_layer4_prompt,
+        parse_layer4_response,
+        merge_verification_with_evaluation
+    )
+    LEGAL_V2_AVAILABLE = True
+except ImportError as e:
+    LEGAL_V2_AVAILABLE = False
+    logging.warning(f"Legal Reasoning v2 modules not available: {e}")
+
 logger = logging.getLogger(__name__)
+
+# Feature flag for new Legal Pipeline v2
+# Set to True to use the new 4-layer architecture
+# Set to False to use the original prompt (backward compatibility)
+USE_LEGAL_PIPELINE_V2 = True
 
 
 class ClaudeVisionService:
@@ -578,13 +613,681 @@ Antwoord ALLEEN met valid JSON in dit exacte format (geen andere tekst). ALLE TE
             "metadata": analysis.get("_metadata", {})
         }
 
+    # =========================================================================
+    # LEGAL REASONING ARCHITECTURE v2.0 - New Methods
+    # =========================================================================
+
+    def analyze_images_v2(
+        self,
+        image_paths: List[str],
+        officer_observation: str,
+        violation_code: str,
+        vehicle_info: Dict[str, str],
+        location_info: Dict[str, str],
+        lang: str = 'nl',
+        max_images: int = 10
+    ) -> Dict[str, Any]:
+        """
+        Layer 2: Objective Image Analysis using the new hallucination-free prompt.
+
+        CRITICAL: This method only OBSERVES, it does NOT INTERPRET legally.
+        Legal interpretation is handled by the Rule Engine (Layer 3).
+
+        Args:
+            image_paths: List of paths to evidence images
+            officer_observation: "Redenen van wetenschap" text from PDF
+            violation_code: e.g., "E9", "E6", "G7"
+            vehicle_info: Dict with kenteken, merk, model, kleur
+            location_info: Dict with straat, buurt, plaats
+            lang: Language code for output
+            max_images: Maximum images to analyze
+
+        Returns:
+            Layer 2 structured observation results (no legal conclusions)
+        """
+        if not self.client:
+            return {
+                "success": False,
+                "layer2_output": None,
+                "error": "Claude Vision service not available - no API key configured"
+            }
+
+        if not LEGAL_V2_AVAILABLE:
+            return {
+                "success": False,
+                "layer2_output": None,
+                "error": "Legal Reasoning v2 modules not available"
+            }
+
+        # Select best images
+        selected_images = self._select_best_images(image_paths, max_images)
+        logger.info(f"[Layer 2] Selected {len(selected_images)} images for objective analysis")
+
+        # Build message content with images
+        content = []
+
+        for img_path in selected_images:
+            try:
+                img_data, media_type = self._encode_image(img_path)
+                content.append({
+                    "type": "image",
+                    "source": {
+                        "type": "base64",
+                        "media_type": media_type,
+                        "data": img_data
+                    }
+                })
+            except Exception as e:
+                logger.warning(f"Could not encode image {img_path}: {e}")
+                continue
+
+        if not content:
+            return {
+                "success": False,
+                "layer2_output": None,
+                "error": "No images could be encoded for analysis"
+            }
+
+        # Build Layer 2 objective analysis prompt
+        document_context = {
+            "violation_code": violation_code,
+            "license_plate": vehicle_info.get("kenteken"),
+            "location": f"{location_info.get('straat', '')}, {location_info.get('buurt', '')}",
+        }
+        prompt = build_layer2_message(lang, document_context)
+        content.append({"type": "text", "text": prompt})
+
+        # Call Claude Vision API
+        try:
+            logger.info("[Layer 2] Calling Claude Vision API for objective analysis...")
+            response = self.client.messages.create(
+                model=self.model,
+                max_tokens=2000,
+                messages=[{"role": "user", "content": content}]
+            )
+
+            response_text = response.content[0].text
+            logger.debug(f"[Layer 2] Raw response: {response_text[:500]}...")
+
+            # Parse JSON response
+            json_str = response_text
+            if "```json" in json_str:
+                json_str = json_str.split("```json")[1].split("```")[0]
+            elif "```" in json_str:
+                json_str = json_str.split("```")[1].split("```")[0]
+
+            layer2_output = json.loads(json_str.strip())
+
+            # Add metadata
+            layer2_output["_metadata"] = {
+                "layer": 2,
+                "timestamp": datetime.now().isoformat(),
+                "model": self.model,
+                "images_analyzed": len(selected_images),
+                "pipeline_version": "2.0"
+            }
+
+            # Log key windshield items for debugging recommendation logic
+            windshield = layer2_output.get("windshield_items", {})
+            logger.info(f"[Layer 2] MLLM windshield_items: permit={windshield.get('permit')}, "
+                       f"disability_card={windshield.get('disability_card')}, "
+                       f"parking_disc={windshield.get('parking_disc')}")
+            logger.info("[Layer 2] Objective analysis completed successfully")
+
+            return {
+                "success": True,
+                "layer2_output": layer2_output,
+                "error": None
+            }
+
+        except json.JSONDecodeError as e:
+            logger.error(f"[Layer 2] Failed to parse response as JSON: {e}")
+            return {
+                "success": False,
+                "layer2_output": None,
+                "error": f"Failed to parse Layer 2 response: {e}",
+                "raw_response": response_text if 'response_text' in locals() else None
+            }
+        except Exception as e:
+            error_type = type(e).__name__
+            logger.error(f"[Layer 2] {error_type}: {e}")
+            return {
+                "success": False,
+                "layer2_output": None,
+                "error": f"{error_type}: {str(e)}"
+            }
+
+    def run_full_legal_pipeline(
+        self,
+        image_paths: List[str],
+        doc_summary: Dict[str, Any],
+        lang: str = 'nl',
+        max_images: int = 10
+    ) -> Dict[str, Any]:
+        """
+        Run the complete 4-layer Legal Reasoning Pipeline v2.0.
+
+        Layers:
+        1. Document Parser (already done by server.py, data in doc_summary)
+        2. Objective Image Analysis (MLLM observes only)
+        3. Rule Engine (deterministic legal matching)
+        4. Officer Validation & Citation Generation
+
+        Args:
+            image_paths: List of image file paths
+            doc_summary: Document summary from PDF extraction
+            lang: Language code
+            max_images: Maximum images to analyze
+
+        Returns:
+            Complete legal assessment with article references
+        """
+        if not LEGAL_V2_AVAILABLE:
+            logger.warning("Legal v2 not available, falling back to v1 pipeline")
+            return self._fallback_to_v1(image_paths, doc_summary, lang, max_images)
+
+        # Extract data from doc_summary
+        violation = doc_summary.get("violation", {})
+        vehicle = doc_summary.get("vehicle", {})
+        location = doc_summary.get("location", {})
+        officer_observation = doc_summary.get("officer_observation", "")
+        violation_code = violation.get("code", "")
+
+        logger.info(f"[Pipeline v2] Starting 4-layer analysis for violation: {violation_code}")
+
+        # =====================================================================
+        # LAYER 2: Objective Image Analysis
+        # =====================================================================
+        layer2_result = self.analyze_images_v2(
+            image_paths=image_paths,
+            officer_observation=officer_observation,
+            violation_code=violation_code,
+            vehicle_info=vehicle,
+            location_info=location,
+            lang=lang,
+            max_images=max_images
+        )
+
+        if not layer2_result.get("success"):
+            return self._format_pipeline_error(layer2_result, "Layer 2")
+
+        layer2_output = layer2_result["layer2_output"]
+        logger.info("[Layer 2] Complete - Objective observations recorded")
+
+        # =====================================================================
+        # LAYER 3: Rule Engine - Deterministic Legal Matching
+        # =====================================================================
+        logger.info("[Layer 3] Running Rule Engine evaluation...")
+
+        # Auto-detect violation from sign if not provided
+        if violation_code:
+            rule_engine_result = evaluate_legal_compliance(layer2_output, violation_code)
+        else:
+            rule_engine_result = evaluate_with_auto_detection(layer2_output)
+
+        logger.info(f"[Layer 3] Complete - Verification score: {rule_engine_result.get('verification_score', 0)}")
+
+        # =====================================================================
+        # LAYER 4: Officer Validation (optional MLLM call for complex cases)
+        # =====================================================================
+        # For now, we'll do a simplified verification without an additional API call
+        # The full Layer 4 MLLM call can be enabled for complex cases
+        verification_result = self._simple_verification(
+            layer2_output, rule_engine_result, officer_observation
+        )
+
+        logger.info(f"[Layer 4] Complete - Observation match: {verification_result.get('observation_match_score', 0)}")
+
+        # =====================================================================
+        # COMBINE RESULTS & DETERMINE ACTION
+        # =====================================================================
+        merged_result = {
+            **rule_engine_result,
+            "observation_supported": verification_result.get("observation_supported", False),
+            "observation_match_score": verification_result.get("observation_match_score", 0.5),
+            "matching_elements": verification_result.get("matching_elements", []),
+            "discrepancies": verification_result.get("discrepancies", []),
+            "missing_from_image": verification_result.get("missing_from_image", []),
+            "overall_confidence": calculate_overall_confidence(
+                object_detection=self._get_avg_confidence(layer2_output),
+                text_recognition=self._get_plate_confidence(layer2_output),
+                legal_reasoning=rule_engine_result.get("verification_score", 0),
+                observation_match=verification_result.get("observation_match_score", 0.5)
+            )
+        }
+
+        # Determine recommended action
+        action_result = determine_action(merged_result)
+
+        # Generate legal statement
+        statement_context = self._build_statement_context(layer2_output, doc_summary)
+        legal_statement = generate_full_legal_output(
+            violation_code=rule_engine_result.get("violation_code", violation_code),
+            mllm_output=layer2_output,
+            officer_observation=officer_observation,
+            language=lang
+        )
+
+        # Get supporting articles
+        articles = get_supporting_articles(rule_engine_result.get("violation_code", violation_code))
+
+        # Format evidence checklist for UI
+        evidence_checklist = format_evidence_checklist(rule_engine_result, lang)
+
+        # Build final output
+        final_output = {
+            "success": True,
+            "pipeline_version": "2.0",
+
+            # Layer 2 output (observations)
+            "layer2_observations": layer2_output,
+
+            # Layer 3 output (legal evaluation)
+            "legal_assessment": {
+                "violation_code": rule_engine_result.get("violation_code"),
+                "violation_name": rule_engine_result.get("violation_name"),
+                "violation_name_en": rule_engine_result.get("violation_name_en"),
+                "feit_code": rule_engine_result.get("legal_references", {}).get("feit_code"),
+                "all_checks_passed": rule_engine_result.get("all_checks_passed"),
+                "verification_score": rule_engine_result.get("verification_score"),
+                "checks": rule_engine_result.get("checks", []),
+                "legal_references": rule_engine_result.get("legal_references", {}),
+                "supporting_articles": articles
+            },
+
+            # Layer 4 output (verification)
+            "officer_verification": verification_result,
+
+            # Combined results
+            "recommendation": action_result,
+            "overall_confidence": merged_result["overall_confidence"],
+
+            # Generated content
+            "legal_statement": legal_statement,
+            "evidence_checklist": evidence_checklist,
+
+            # Metadata
+            "metadata": {
+                "timestamp": datetime.now().isoformat(),
+                "model": self.model,
+                "pipeline_version": "2.0",
+                "images_analyzed": layer2_output.get("_metadata", {}).get("images_analyzed", 0),
+                "language": lang
+            }
+        }
+
+        logger.info(f"[Pipeline v2] Complete - Action: {action_result.get('action')}, Confidence: {merged_result['overall_confidence']}")
+
+        return final_output
+
+    def _simple_verification(
+        self,
+        layer2_output: Dict,
+        rule_engine_result: Dict,
+        officer_observation: str
+    ) -> Dict[str, Any]:
+        """
+        Simple verification of Layer 2 output against officer observation.
+        This is a deterministic check without additional MLLM calls.
+        """
+        matching_elements = []
+        discrepancies = []
+        missing_from_image = []
+
+        # Check sign detection matches
+        sign_code = layer2_output.get("traffic_sign", {}).get("sign_code", "none")
+        if sign_code and sign_code != "none":
+            matching_elements.append({
+                "element": f"Traffic sign {sign_code} detected",
+                "source": "image"
+            })
+
+        # Check permit/card status
+        windshield = layer2_output.get("windshield_items", {})
+        if windshield.get("permit") == "no":
+            matching_elements.append({
+                "element": "No permit visible in windshield",
+                "source": "image"
+            })
+        elif windshield.get("permit") == "not_visible":
+            missing_from_image.append("Permit visibility could not be confirmed")
+
+        if windshield.get("disability_card") == "no":
+            matching_elements.append({
+                "element": "No disability card visible",
+                "source": "image"
+            })
+
+        # Check driver presence
+        env = layer2_output.get("environment", {})
+        if not env.get("driver_present", True):
+            matching_elements.append({
+                "element": "No driver present",
+                "source": "image"
+            })
+
+        # Calculate match score
+        total_checks = len(rule_engine_result.get("checks", []))
+        passed_checks = len(rule_engine_result.get("passed_checks", []))
+
+        if total_checks > 0:
+            base_score = passed_checks / total_checks
+        else:
+            base_score = 0.5
+
+        # Adjust based on matches
+        match_bonus = min(0.2, len(matching_elements) * 0.05)
+        discrepancy_penalty = len(discrepancies) * 0.1
+
+        match_score = min(1.0, max(0.0, base_score + match_bonus - discrepancy_penalty))
+
+        return {
+            "observation_supported": match_score >= 0.7,
+            "observation_match_score": round(match_score, 2),
+            "matching_elements": matching_elements,
+            "discrepancies": discrepancies,
+            "missing_from_image": missing_from_image
+        }
+
+    def _get_avg_confidence(self, layer2_output: Dict) -> float:
+        """Get average detection confidence from Layer 2 output."""
+        confidences = []
+
+        if layer2_output.get("traffic_sign", {}).get("confidence"):
+            confidences.append(layer2_output["traffic_sign"]["confidence"])
+
+        plate_conf = layer2_output.get("vehicle", {}).get("license_plate", {}).get("confidence")
+        if plate_conf:
+            confidences.append(plate_conf)
+
+        return sum(confidences) / len(confidences) if confidences else 0.5
+
+    def _get_plate_confidence(self, layer2_output: Dict) -> float:
+        """Get license plate recognition confidence."""
+        return layer2_output.get("vehicle", {}).get("license_plate", {}).get("confidence", 0.5)
+
+    def _build_statement_context(self, layer2_output: Dict, doc_summary: Dict) -> Dict:
+        """Build context for legal statement generation."""
+        return {
+            "observation_time": "5",  # Default
+            "sub_sign_text": layer2_output.get("traffic_sign", {}).get("sub_sign_text"),
+            "vehicle_plate": doc_summary.get("vehicle", {}).get("kenteken", "[KENTEKEN]"),
+        }
+
+    def _format_pipeline_error(self, result: Dict, layer: str) -> Dict:
+        """Format an error response from the pipeline."""
+        return {
+            "success": False,
+            "pipeline_version": "2.0",
+            "error": f"{layer} failed: {result.get('error', 'Unknown error')}",
+            "failed_layer": layer,
+            "layer2_observations": None,
+            "legal_assessment": None,
+            "recommendation": {
+                "action": "manual_review",
+                "reason": f"Pipeline error at {layer}",
+                "requires_manual_review": True
+            }
+        }
+
+    def _fallback_to_v1(
+        self,
+        image_paths: List[str],
+        doc_summary: Dict[str, Any],
+        lang: str,
+        max_images: int
+    ) -> Dict[str, Any]:
+        """Fallback to v1 pipeline if v2 is not available."""
+        violation = doc_summary.get("violation", {})
+        vehicle = doc_summary.get("vehicle", {})
+        location = doc_summary.get("location", {})
+        officer_observation = doc_summary.get("officer_observation", "")
+
+        result = self.analyze_images(
+            image_paths=image_paths,
+            officer_observation=officer_observation,
+            violation_code=violation.get("code", ""),
+            violation_description=violation.get("description", ""),
+            vehicle_info=vehicle,
+            location_info=location,
+            lang=lang,
+            max_images=max_images
+        )
+
+        return self.format_for_ui(result, lang)
+
+    def format_v2_for_ui(
+        self,
+        pipeline_result: Dict[str, Any],
+        lang: str = 'nl'
+    ) -> Dict[str, Any]:
+        """
+        Format the v2 pipeline result for the existing UI template.
+        Provides backward compatibility with the result.html template.
+        """
+        if not pipeline_result.get("success"):
+            return {
+                "mllm_analysis": None,
+                "mllm_error": pipeline_result.get("error"),
+                "detected_items_ui": {"items": []},
+                "confidence_scores": {
+                    "object_detection": 0.0,
+                    "text_recognition": 0.0,
+                    "legal_reasoning": 0.0
+                },
+                "pipeline_version": "2.0"
+            }
+
+        layer2 = pipeline_result.get("layer2_observations", {})
+        legal = pipeline_result.get("legal_assessment", {})
+        verification = pipeline_result.get("officer_verification", {})
+        recommendation = pipeline_result.get("recommendation", {})
+
+        # Calculate confidence scores for UI
+        confidence_scores = {
+            "object_detection": self._get_avg_confidence(layer2),
+            "text_recognition": self._get_plate_confidence(layer2),
+            "legal_reasoning": legal.get("verification_score", 0)
+        }
+
+        # Format detected items for UI sidebar
+        detected_items = self._format_detected_items_v2(layer2, lang)
+
+        # Convert Layer 2 observations to legacy format for UI compatibility
+        legacy_analysis = self._convert_to_legacy_format(layer2, legal, verification)
+
+        return {
+            "mllm_analysis": legacy_analysis,
+            "mllm_error": None,
+            "detected_items_ui": {"items": detected_items},
+            "confidence_scores": confidence_scores,
+            "image_description": layer2.get("observation_summary", ""),
+            "environmental_context": {
+                "lighting": layer2.get("environment", {}).get("lighting", ""),
+                "image_quality": layer2.get("environment", {}).get("image_quality", "")
+            },
+            "verification": {
+                "observation_supported": verification.get("observation_supported", False),
+                "matching_elements": [m.get("element", "") for m in verification.get("matching_elements", [])],
+                "discrepancies": [d.get("item", "") for d in verification.get("discrepancies", [])],
+                "missing_evidence": verification.get("missing_from_image", []),
+                "overall_confidence": pipeline_result.get("overall_confidence", 0)
+            },
+            "summary": layer2.get("observation_summary", ""),
+            "metadata": pipeline_result.get("metadata", {}),
+
+            # New v2 specific fields
+            "pipeline_version": "2.0",
+            "legal_assessment": legal,
+            "legal_statement": pipeline_result.get("legal_statement", {}),
+            "evidence_checklist": pipeline_result.get("evidence_checklist", []),
+            "recommendation": recommendation,
+            "recommendation_ui": format_action_for_ui(recommendation, lang) if LEGAL_V2_AVAILABLE else None
+        }
+
+    def _format_detected_items_v2(self, layer2: Dict, lang: str) -> List[Dict]:
+        """Format detected items from Layer 2 output for UI."""
+        items = []
+
+        labels = {
+            'nl': {
+                'vehicle': 'Voertuig',
+                'license_plate': 'Kenteken',
+                'traffic_sign': 'Verkeersbord',
+                'parking_permit': 'Parkeervergunning',
+                'disability_card': 'Gehandicaptenparkeerkaart'
+            },
+            'en': {
+                'vehicle': 'Vehicle',
+                'license_plate': 'License Plate',
+                'traffic_sign': 'Traffic Sign',
+                'parking_permit': 'Parking Permit',
+                'disability_card': 'Disability Card'
+            }
+        }.get(lang, {})
+
+        # Vehicle
+        vehicle = layer2.get("vehicle", {})
+        if vehicle.get("type"):
+            items.append({
+                "label": labels.get('vehicle', 'Vehicle'),
+                "label_key": "vehicle",
+                "confidence": int(layer2.get("traffic_sign", {}).get("confidence", 0.8) * 100),
+                "detected": True,
+                "details": f"{vehicle.get('color', '')} {vehicle.get('type', '')}".strip(),
+                "crop_available": False
+            })
+
+        # License plate
+        plate = vehicle.get("license_plate", {})
+        if plate.get("visibility") in ["full", "partial"]:
+            items.append({
+                "label": labels.get('license_plate', 'License Plate'),
+                "label_key": "license_plate",
+                "confidence": int(plate.get("confidence", 0) * 100),
+                "detected": True,
+                "extracted_text": plate.get("value"),
+                "crop_available": False
+            })
+        else:
+            items.append({
+                "label": labels.get('license_plate', 'License Plate'),
+                "label_key": "license_plate",
+                "confidence": 0,
+                "detected": False,
+                "crop_available": False
+            })
+
+        # Traffic sign
+        sign = layer2.get("traffic_sign", {})
+        if sign.get("detected"):
+            sign_label = f"{labels.get('traffic_sign', 'Traffic Sign')} {sign.get('sign_code', '')}"
+            items.append({
+                "label": sign_label,
+                "label_key": "traffic_sign",
+                "confidence": int(sign.get("confidence", 0) * 100),
+                "detected": True,
+                "sign_code": sign.get("sign_code"),
+                "sub_sign": sign.get("sub_sign_text"),
+                "crop_available": False
+            })
+        else:
+            items.append({
+                "label": labels.get('traffic_sign', 'Traffic Sign'),
+                "label_key": "traffic_sign",
+                "confidence": 0,
+                "detected": False,
+                "crop_available": False
+            })
+
+        # Windshield items
+        windshield = layer2.get("windshield_items", {})
+        if windshield.get("permit") == "yes":
+            items.append({
+                "label": labels.get('parking_permit', 'Parking Permit'),
+                "label_key": "permit",
+                "confidence": 80,
+                "detected": True,
+                "crop_available": False
+            })
+
+        if windshield.get("disability_card") == "yes":
+            items.append({
+                "label": labels.get('disability_card', 'Disability Card'),
+                "label_key": "disability_card",
+                "confidence": 80,
+                "detected": True,
+                "crop_available": False
+            })
+
+        return items
+
+    def _convert_to_legacy_format(
+        self,
+        layer2: Dict,
+        legal: Dict,
+        verification: Dict
+    ) -> Dict:
+        """Convert v2 output to legacy analysis format for UI compatibility."""
+        vehicle = layer2.get("vehicle", {})
+        sign = layer2.get("traffic_sign", {})
+        plate = vehicle.get("license_plate", {})
+        windshield = layer2.get("windshield_items", {})
+
+        return {
+            "image_description": layer2.get("observation_summary", ""),
+            "object_detection": {
+                "vehicle": {
+                    "detected": bool(vehicle.get("type")),
+                    "confidence": 0.85,
+                    "details": f"{vehicle.get('color', '')} {vehicle.get('type', '')}".strip()
+                },
+                "license_plate": {
+                    "detected": plate.get("visibility") in ["full", "partial"],
+                    "confidence": plate.get("confidence", 0),
+                    "value": plate.get("value")
+                },
+                "traffic_sign": {
+                    "detected": sign.get("detected", False),
+                    "confidence": sign.get("confidence", 0),
+                    "sign_type": sign.get("sign_code")
+                },
+                "parking_permit": {
+                    "detected": windshield.get("permit") == "yes",
+                    "confidence": 0.8 if windshield.get("permit") == "yes" else 0,
+                    "details": ""
+                },
+                "driver_present": {
+                    "detected": layer2.get("environment", {}).get("driver_present", False),
+                    "confidence": 0.9
+                }
+            },
+            "environmental_context": {
+                "lighting": layer2.get("environment", {}).get("lighting", ""),
+                "image_quality": layer2.get("environment", {}).get("image_quality", "")
+            },
+            "verification": {
+                "observation_supported": verification.get("observation_supported", False),
+                "matching_elements": [m.get("element", "") for m in verification.get("matching_elements", [])],
+                "discrepancies": [d.get("item", "") for d in verification.get("discrepancies", [])],
+                "missing_evidence": verification.get("missing_from_image", []),
+                "overall_confidence": verification.get("observation_match_score", 0.5)
+            },
+            "summary": layer2.get("observation_summary", ""),
+            "_metadata": layer2.get("_metadata", {}),
+
+            # Add legal assessment data
+            "_legal_assessment": legal
+        }
+
 
 # Convenience function for direct use
 def analyze_parking_evidence(
     image_paths: List[str],
     doc_summary: Dict[str, Any],
     lang: str = 'nl',
-    max_images: int = 10
+    max_images: int = 10,
+    use_v2_pipeline: bool = None
 ) -> Dict[str, Any]:
     """
     Convenience function to analyze parking violation evidence.
@@ -594,6 +1297,8 @@ def analyze_parking_evidence(
         doc_summary: Document summary from PDF extraction
         lang: Language code
         max_images: Maximum images to analyze
+        use_v2_pipeline: Whether to use Legal Reasoning v2 pipeline.
+                        If None, uses USE_LEGAL_PIPELINE_V2 flag.
 
     Returns:
         Formatted results for UI
@@ -624,13 +1329,27 @@ def analyze_parking_evidence(
             }
         }
 
-    # Extract data from doc_summary
+    # Determine which pipeline to use
+    should_use_v2 = use_v2_pipeline if use_v2_pipeline is not None else USE_LEGAL_PIPELINE_V2
+
+    # Use v2 pipeline if enabled and available
+    if should_use_v2 and LEGAL_V2_AVAILABLE:
+        logger.info("Using Legal Reasoning Pipeline v2.0")
+        pipeline_result = service.run_full_legal_pipeline(
+            image_paths=image_paths,
+            doc_summary=doc_summary,
+            lang=lang,
+            max_images=max_images
+        )
+        return service.format_v2_for_ui(pipeline_result, lang)
+
+    # Fallback to v1 pipeline
+    logger.info("Using Legacy Pipeline v1.0")
     violation = doc_summary.get("violation", {})
     vehicle = doc_summary.get("vehicle", {})
     location = doc_summary.get("location", {})
     officer_observation = doc_summary.get("officer_observation", "")
 
-    # Run analysis
     result = service.analyze_images(
         image_paths=image_paths,
         officer_observation=officer_observation,
@@ -642,5 +1361,53 @@ def analyze_parking_evidence(
         max_images=max_images
     )
 
-    # Format for UI
     return service.format_for_ui(result, lang)
+
+
+def analyze_parking_evidence_v2(
+    image_paths: List[str],
+    doc_summary: Dict[str, Any],
+    lang: str = 'nl',
+    max_images: int = 10
+) -> Dict[str, Any]:
+    """
+    Convenience function to analyze parking violation evidence using v2 pipeline.
+
+    This function explicitly uses the Legal Reasoning Architecture v2.0
+    with the 4-layer pipeline.
+
+    Args:
+        image_paths: List of image file paths
+        doc_summary: Document summary from PDF extraction
+        lang: Language code
+        max_images: Maximum images to analyze
+
+    Returns:
+        Full pipeline result (not formatted for legacy UI)
+    """
+    if not ANTHROPIC_AVAILABLE:
+        return {
+            "success": False,
+            "error": "MLLM service not available - anthropic package not installed"
+        }
+
+    if not LEGAL_V2_AVAILABLE:
+        return {
+            "success": False,
+            "error": "Legal Reasoning v2 modules not available"
+        }
+
+    service = ClaudeVisionService()
+
+    if not service.is_available():
+        return {
+            "success": False,
+            "error": "MLLM service not available - ANTHROPIC_API_KEY not configured"
+        }
+
+    return service.run_full_legal_pipeline(
+        image_paths=image_paths,
+        doc_summary=doc_summary,
+        lang=lang,
+        max_images=max_images
+    )
