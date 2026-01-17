@@ -25,13 +25,19 @@ Analyze the image(s) and report:
    - Position on the road/parking area
 
 2. TRAFFIC SIGN OBSERVATION:
-   - Which sign(s) visible? Use this identification guide:
-     * E6 = Disabled parking: Blue sign with WHITE WHEELCHAIR SYMBOL (♿)
+   ⚠️ CRITICAL DISTINCTION - READ CAREFULLY:
+   - E6 (Disabled parking) = Blue sign with WHITE WHEELCHAIR SYMBOL (♿) - MUST have wheelchair icon
+   - E9 (Permit holders) = Blue "P" sign with text "vergunninghouders" - NO wheelchair symbol, just text
+
+   🚨 IMPORTANT: If the sign shows "vergunninghouders" text WITHOUT a wheelchair symbol, it is E9, NOT E6!
+   🚨 Only classify as E6 if you see an actual wheelchair icon (♿) on the sign!
+
+   Full identification guide:
+     * E6 = Disabled parking: MUST have WHITE WHEELCHAIR SYMBOL (♿)
      * E7 = Loading/unloading zone: Blue sign with truck/cargo symbol
-     * E9 = Permit holders parking: Blue "P" sign with text "vergunninghouders" or permit holder text (NO wheelchair symbol)
+     * E9 = Permit holders parking: Blue "P" sign with text "vergunninghouders" (NO wheelchair!)
      * G7 = Pedestrian area/footpath: Blue sign with pedestrian symbol
      * E4 = Parking facility: Blue "P" sign without permit text
-   - CRITICAL: E6 has a WHEELCHAIR symbol, E9 does NOT have a wheelchair symbol
    - Is a sub-sign present? If so, what does it say?
    - Approximate distance from vehicle to sign
 
@@ -112,6 +118,8 @@ For windshield items (permit, disability card, parking disc):
 IMPORTANT: Most parking enforcement photos show the windshield clearly enough to confirm absence of documents.
 If you can see the dashboard or interior through the windshield, even partially, you can confirm "no" for missing items.
 Do NOT use "not_visible" just because there is some glare - only use it when you truly cannot see the interior AT ALL.
+
+WHEN IN DOUBT: Always prefer "no" over "not_visible". Use "not_visible" ONLY as a last resort when you genuinely cannot see the windshield area at all. In 95% of parking photos, the correct answer for missing documents is "no", not "not_visible".
 """
 
 
@@ -127,13 +135,19 @@ Analyseer de afbeelding(en) en rapporteer:
    - Positie op de weg/parkeerplaats
 
 2. VERKEERSBORD OBSERVATIE:
-   - Welk(e) bord(en) zichtbaar? Gebruik deze identificatiegids:
-     * E6 = Gehandicaptenparkeerplaats: Blauw bord met WIT ROLSTOEL SYMBOOL (♿)
+   ⚠️ KRITIEK ONDERSCHEID - LEES ZORGVULDIG:
+   - E6 (Gehandicaptenparkeren) = Blauw bord met WIT ROLSTOEL SYMBOOL (♿) - MOET rolstoel icoon hebben
+   - E9 (Vergunninghouders) = Blauw "P" bord met tekst "vergunninghouders" - GEEN rolstoel symbool, alleen tekst
+
+   🚨 BELANGRIJK: Als het bord "vergunninghouders" tekst toont ZONDER rolstoel symbool, is het E9, NIET E6!
+   🚨 Classificeer alleen als E6 als je een daadwerkelijk rolstoel icoon (♿) op het bord ziet!
+
+   Volledige identificatiegids:
+     * E6 = Gehandicaptenparkeerplaats: MOET WIT ROLSTOEL SYMBOOL (♿) hebben
      * E7 = Laden/lossen zone: Blauw bord met vrachtwagen/lading symbool
-     * E9 = Vergunninghouders parkeren: Blauw "P" bord met tekst "vergunninghouders" (GEEN rolstoel symbool)
+     * E9 = Vergunninghouders parkeren: Blauw "P" bord met tekst "vergunninghouders" (GEEN rolstoel!)
      * G7 = Voetgangersgebied: Blauw bord met voetganger symbool
      * E4 = Parkeergelegenheid: Blauw "P" bord zonder vergunningtekst
-   - KRITIEK: E6 heeft een ROLSTOEL symbool, E9 heeft GEEN rolstoel symbool
    - Is er een onderbord aanwezig? Zo ja, wat staat erop?
    - Geschatte afstand van voertuig tot bord
 
@@ -214,6 +228,8 @@ Voor voorruit items (vergunning, gehandicaptenkaart, parkeerschijf):
 BELANGRIJK: De meeste parkeerhandhavingsfoto's tonen de voorruit duidelijk genoeg om afwezigheid van documenten te bevestigen.
 Als je het dashboard of interieur door de voorruit kunt zien, zelfs gedeeltelijk, kun je "no" bevestigen voor ontbrekende items.
 Gebruik "not_visible" NIET alleen omdat er wat schittering is - gebruik het alleen wanneer je het interieur HELEMAAL niet kunt zien.
+
+BIJ TWIJFEL: Geef altijd de voorkeur aan "no" boven "not_visible". Gebruik "not_visible" ALLEEN als laatste redmiddel wanneer je de voorruit echt helemaal niet kunt zien. In 95% van de parkeerfoto's is het juiste antwoord voor ontbrekende documenten "no", niet "not_visible".
 """
 
 
