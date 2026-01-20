@@ -1,0 +1,11 @@
+# macOS
+.DS_Store
+
+# ML / experiments
+runs/
+
+# Datasets
+pictures wrongly parked cars/
+
+# Accidental files
+f
