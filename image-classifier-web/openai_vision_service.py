@@ -1,20 +1,14 @@
 """
-Claude Vision Service for MLLM-based parking violation image analysis.
+OpenAI Vision Service for MLLM-based parking violation image analysis.
 
-<<<<<<< HEAD
-This service:
-1. Accepts images + police observation context
-2. Calls Claude Vision API with structured prompts
-3. Returns semantic metadata aligned with parking enforcement domain
-=======
 This service implements the Legal Reasoning Architecture v2.0:
 - Layer 1: Document Parser (handled by server.py)
 - Layer 2: Objective Image Analysis (MLLM observes, does NOT interpret legally)
 - Layer 3: Rule Engine (deterministic legal matching)
 - Layer 4: Officer Validation & Citation Generation
 
-Version: 2.0 with backward compatibility
->>>>>>> f4a5b07a294ab5f4189aea1a3e4ac376ae2650e1
+Version: 2.0 - OpenAI GPT-4o Implementation
+Mirrors claude_vision_service.py architecture exactly.
 """
 
 import base64
@@ -25,18 +19,14 @@ import json
 from datetime import datetime
 import logging
 
-# Make anthropic import optional
+# Make openai import optional
 try:
-    import anthropic
-    ANTHROPIC_AVAILABLE = True
+    import openai
+    OPENAI_AVAILABLE = True
 except ImportError:
-    anthropic = None
-    ANTHROPIC_AVAILABLE = False
+    openai = None
+    OPENAI_AVAILABLE = False
 
-<<<<<<< HEAD
-logger = logging.getLogger(__name__)
-
-=======
 # Import Legal Reasoning v2 modules
 try:
     from legal import (
@@ -67,40 +57,37 @@ except ImportError as e:
 logger = logging.getLogger(__name__)
 
 # Feature flag for new Legal Pipeline v2
-# Set to True to use the new 4-layer architecture
-# Set to False to use the original prompt (backward compatibility)
 USE_LEGAL_PIPELINE_V2 = True
 
->>>>>>> f4a5b07a294ab5f4189aea1a3e4ac376ae2650e1
 
-class ClaudeVisionService:
+class OpenAIVisionService:
     """
-    Service for analyzing parking violation evidence images using Claude Vision.
+    Service for analyzing parking violation evidence images using OpenAI GPT-4o Vision.
     """
 
     def __init__(self, api_key: Optional[str] = None):
         """
-        Initialize the Claude Vision service.
+        Initialize the OpenAI Vision service.
 
         Args:
-            api_key: Anthropic API key. If None, reads from ANTHROPIC_API_KEY env var.
+            api_key: OpenAI API key. If None, reads from OPENAI_API_KEY env var.
         """
-        self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
+        self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
         self.client = None
-        self.model = "claude-sonnet-4-20250514"
+        self.model = "gpt-4o"
 
-        if not ANTHROPIC_AVAILABLE:
-            logger.warning("Anthropic package not installed - MLLM analysis will not be available")
+        if not OPENAI_AVAILABLE:
+            logger.warning("OpenAI package not installed - MLLM analysis will not be available")
             return
 
         if self.api_key:
             try:
-                self.client = anthropic.Anthropic(api_key=self.api_key)
-                logger.info("ClaudeVisionService initialized with API key")
+                self.client = openai.OpenAI(api_key=self.api_key)
+                logger.info("OpenAIVisionService initialized with API key")
             except Exception as e:
-                logger.warning(f"Failed to initialize Anthropic client: {e}")
+                logger.warning(f"Failed to initialize OpenAI client: {e}")
         else:
-            logger.warning("No ANTHROPIC_API_KEY found - MLLM analysis will not be available")
+            logger.warning("No OPENAI_API_KEY found - MLLM analysis will not be available")
 
     def is_available(self) -> bool:
         """Check if the service is available (API key configured)."""
@@ -179,7 +166,7 @@ class ClaudeVisionService:
     ) -> str:
         """
         Build the analysis prompt with all context.
-        Language-aware: returns prompt that instructs Claude to respond in the selected language.
+        Language-aware: returns prompt that instructs GPT-4o to respond in the selected language.
         """
         # Build context section (always includes Dutch source data)
         context_section = f"""
@@ -369,7 +356,7 @@ Antwoord ALLEEN met valid JSON in dit exacte format (geen andere tekst). ALLE TE
         max_images: int = 10
     ) -> Dict[str, Any]:
         """
-        Analyze parking violation evidence images using Claude Vision.
+        Analyze parking violation evidence images using OpenAI GPT-4o Vision.
 
         Args:
             image_paths: List of paths to evidence images
@@ -388,14 +375,14 @@ Antwoord ALLEEN met valid JSON in dit exacte format (geen andere tekst). ALLE TE
             return {
                 "success": False,
                 "analysis": None,
-                "error": "Claude Vision service not available - no API key configured"
+                "error": "OpenAI Vision service not available - no API key configured"
             }
 
         # Select best images
         selected_images = self._select_best_images(image_paths, max_images)
-        logger.info(f"Selected {len(selected_images)} images for MLLM analysis")
+        logger.info(f"Selected {len(selected_images)} images for OpenAI MLLM analysis")
 
-        # Build message content with images
+        # Build message content with images (OpenAI format)
         content = []
 
         # Add images first
@@ -403,11 +390,10 @@ Antwoord ALLEEN met valid JSON in dit exacte format (geen andere tekst). ALLE TE
             try:
                 img_data, media_type = self._encode_image(img_path)
                 content.append({
-                    "type": "image",
-                    "source": {
-                        "type": "base64",
-                        "media_type": media_type,
-                        "data": img_data
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:{media_type};base64,{img_data}",
+                        "detail": "high"
                     }
                 })
                 logger.debug(f"Encoded image: {img_path}")
@@ -433,10 +419,10 @@ Antwoord ALLEEN met valid JSON in dit exacte format (geen andere tekst). ALLE TE
         )
         content.append({"type": "text", "text": prompt})
 
-        # Call Claude Vision API
+        # Call OpenAI Vision API
         try:
-            logger.info("Calling Claude Vision API...")
-            response = self.client.messages.create(
+            logger.info("Calling OpenAI GPT-4o Vision API...")
+            response = self.client.chat.completions.create(
                 model=self.model,
                 max_tokens=2000,
                 messages=[
@@ -445,7 +431,7 @@ Antwoord ALLEEN met valid JSON in dit exacte format (geen andere tekst). ALLE TE
             )
 
             # Extract JSON from response
-            response_text = response.content[0].text
+            response_text = response.choices[0].message.content
             logger.debug(f"Raw API response: {response_text[:500]}...")
 
             # Try to parse JSON (handle potential markdown code blocks)
@@ -466,7 +452,7 @@ Antwoord ALLEEN met valid JSON in dit exacte format (geen andere tekst). ALLE TE
                 "selected_image_paths": [os.path.basename(p) for p in selected_images]
             }
 
-            logger.info("MLLM analysis completed successfully")
+            logger.info("OpenAI MLLM analysis completed successfully")
 
             return {
                 "success": True,
@@ -483,9 +469,8 @@ Antwoord ALLEEN met valid JSON in dit exacte format (geen andere tekst). ALLE TE
                 "raw_response": response_text if 'response_text' in locals() else None
             }
         except Exception as e:
-            # Handle all API errors including anthropic.APIError
             error_type = type(e).__name__
-            logger.error(f"{error_type} during MLLM analysis: {e}")
+            logger.error(f"{error_type} during OpenAI MLLM analysis: {e}")
             return {
                 "success": False,
                 "analysis": None,
@@ -625,8 +610,6 @@ Antwoord ALLEEN met valid JSON in dit exacte format (geen andere tekst). ALLE TE
             "metadata": analysis.get("_metadata", {})
         }
 
-<<<<<<< HEAD
-=======
     # =========================================================================
     # LEGAL REASONING ARCHITECTURE v2.0 - New Methods
     # =========================================================================
@@ -663,7 +646,7 @@ Antwoord ALLEEN met valid JSON in dit exacte format (geen andere tekst). ALLE TE
             return {
                 "success": False,
                 "layer2_output": None,
-                "error": "Claude Vision service not available - no API key configured"
+                "error": "OpenAI Vision service not available - no API key configured"
             }
 
         if not LEGAL_V2_AVAILABLE:
@@ -675,20 +658,19 @@ Antwoord ALLEEN met valid JSON in dit exacte format (geen andere tekst). ALLE TE
 
         # Select best images
         selected_images = self._select_best_images(image_paths, max_images)
-        logger.info(f"[Layer 2] Selected {len(selected_images)} images for objective analysis")
+        logger.info(f"[Layer 2] Selected {len(selected_images)} images for objective analysis (OpenAI)")
 
-        # Build message content with images
+        # Build message content with images (OpenAI format)
         content = []
 
         for img_path in selected_images:
             try:
                 img_data, media_type = self._encode_image(img_path)
                 content.append({
-                    "type": "image",
-                    "source": {
-                        "type": "base64",
-                        "media_type": media_type,
-                        "data": img_data
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:{media_type};base64,{img_data}",
+                        "detail": "high"
                     }
                 })
             except Exception as e:
@@ -711,16 +693,16 @@ Antwoord ALLEEN met valid JSON in dit exacte format (geen andere tekst). ALLE TE
         prompt = build_layer2_message(lang, document_context)
         content.append({"type": "text", "text": prompt})
 
-        # Call Claude Vision API
+        # Call OpenAI Vision API
         try:
-            logger.info("[Layer 2] Calling Claude Vision API for objective analysis...")
-            response = self.client.messages.create(
+            logger.info("[Layer 2] Calling OpenAI GPT-4o Vision API for objective analysis...")
+            response = self.client.chat.completions.create(
                 model=self.model,
                 max_tokens=2000,
                 messages=[{"role": "user", "content": content}]
             )
 
-            response_text = response.content[0].text
+            response_text = response.choices[0].message.content
             logger.debug(f"[Layer 2] Raw response: {response_text[:500]}...")
 
             # Parse JSON response
@@ -743,10 +725,10 @@ Antwoord ALLEEN met valid JSON in dit exacte format (geen andere tekst). ALLE TE
 
             # Log key windshield items for debugging recommendation logic
             windshield = layer2_output.get("windshield_items", {})
-            logger.info(f"[Layer 2] MLLM windshield_items: permit={windshield.get('permit')}, "
+            logger.info(f"[Layer 2] OpenAI windshield_items: permit={windshield.get('permit')}, "
                        f"disability_card={windshield.get('disability_card')}, "
                        f"parking_disc={windshield.get('parking_disc')}")
-            logger.info("[Layer 2] Objective analysis completed successfully")
+            logger.info("[Layer 2] Objective analysis completed successfully (OpenAI)")
 
             return {
                 "success": True,
@@ -807,7 +789,7 @@ Antwoord ALLEEN met valid JSON in dit exacte format (geen andere tekst). ALLE TE
         officer_observation = doc_summary.get("officer_observation", "")
         violation_code = violation.get("code", "")
 
-        logger.info(f"[Pipeline v2] Starting 4-layer analysis for violation: {violation_code}")
+        logger.info(f"[Pipeline v2] Starting 4-layer analysis for violation: {violation_code} (OpenAI)")
 
         # =====================================================================
         # LAYER 2: Objective Image Analysis
@@ -826,7 +808,7 @@ Antwoord ALLEEN met valid JSON in dit exacte format (geen andere tekst). ALLE TE
             return self._format_pipeline_error(layer2_result, "Layer 2")
 
         layer2_output = layer2_result["layer2_output"]
-        logger.info("[Layer 2] Complete - Objective observations recorded")
+        logger.info("[Layer 2] Complete - Objective observations recorded (OpenAI)")
 
         # =====================================================================
         # LAYER 3: Rule Engine - Deterministic Legal Matching
@@ -844,8 +826,6 @@ Antwoord ALLEEN met valid JSON in dit exacte format (geen andere tekst). ALLE TE
         # =====================================================================
         # LAYER 4: Officer Validation (optional MLLM call for complex cases)
         # =====================================================================
-        # For now, we'll do a simplified verification without an additional API call
-        # The full Layer 4 MLLM call can be enabled for complex cases
         verification_result = self._simple_verification(
             layer2_output, rule_engine_result, officer_observation
         )
@@ -930,7 +910,7 @@ Antwoord ALLEEN met valid JSON in dit exacte format (geen andere tekst). ALLE TE
             }
         }
 
-        logger.info(f"[Pipeline v2] Complete - Action: {action_result.get('action')}, Confidence: {merged_result['overall_confidence']}")
+        logger.info(f"[Pipeline v2] Complete - Action: {action_result.get('action')}, Confidence: {merged_result['overall_confidence']} (OpenAI)")
 
         return final_output
 
@@ -1294,41 +1274,33 @@ Antwoord ALLEEN met valid JSON in dit exacte format (geen andere tekst). ALLE TE
             "_legal_assessment": legal
         }
 
->>>>>>> f4a5b07a294ab5f4189aea1a3e4ac376ae2650e1
 
 # Convenience function for direct use
-def analyze_parking_evidence(
+def analyze_parking_evidence_openai(
     image_paths: List[str],
     doc_summary: Dict[str, Any],
     lang: str = 'nl',
-<<<<<<< HEAD
-    max_images: int = 10
-=======
     max_images: int = 10,
     use_v2_pipeline: bool = None
->>>>>>> f4a5b07a294ab5f4189aea1a3e4ac376ae2650e1
 ) -> Dict[str, Any]:
     """
-    Convenience function to analyze parking violation evidence.
+    Convenience function to analyze parking violation evidence using OpenAI GPT-4o.
 
     Args:
         image_paths: List of image file paths
         doc_summary: Document summary from PDF extraction
         lang: Language code
         max_images: Maximum images to analyze
-<<<<<<< HEAD
-=======
         use_v2_pipeline: Whether to use Legal Reasoning v2 pipeline.
                         If None, uses USE_LEGAL_PIPELINE_V2 flag.
->>>>>>> f4a5b07a294ab5f4189aea1a3e4ac376ae2650e1
 
     Returns:
         Formatted results for UI
     """
-    if not ANTHROPIC_AVAILABLE:
+    if not OPENAI_AVAILABLE:
         return {
             "mllm_analysis": None,
-            "mllm_error": "MLLM service not available - anthropic package not installed. Run: pip install anthropic",
+            "mllm_error": "OpenAI MLLM service not available - openai package not installed. Run: pip install openai",
             "detected_items_ui": {"items": []},
             "confidence_scores": {
                 "object_detection": 0.0,
@@ -1337,12 +1309,12 @@ def analyze_parking_evidence(
             }
         }
 
-    service = ClaudeVisionService()
+    service = OpenAIVisionService()
 
     if not service.is_available():
         return {
             "mllm_analysis": None,
-            "mllm_error": "MLLM service not available - ANTHROPIC_API_KEY not configured",
+            "mllm_error": "OpenAI MLLM service not available - OPENAI_API_KEY not configured",
             "detected_items_ui": {"items": []},
             "confidence_scores": {
                 "object_detection": 0.0,
@@ -1351,15 +1323,12 @@ def analyze_parking_evidence(
             }
         }
 
-<<<<<<< HEAD
-    # Extract data from doc_summary
-=======
     # Determine which pipeline to use
     should_use_v2 = use_v2_pipeline if use_v2_pipeline is not None else USE_LEGAL_PIPELINE_V2
 
     # Use v2 pipeline if enabled and available
     if should_use_v2 and LEGAL_V2_AVAILABLE:
-        logger.info("Using Legal Reasoning Pipeline v2.0")
+        logger.info("Using Legal Reasoning Pipeline v2.0 (OpenAI)")
         pipeline_result = service.run_full_legal_pipeline(
             image_paths=image_paths,
             doc_summary=doc_summary,
@@ -1369,17 +1338,12 @@ def analyze_parking_evidence(
         return service.format_v2_for_ui(pipeline_result, lang)
 
     # Fallback to v1 pipeline
-    logger.info("Using Legacy Pipeline v1.0")
->>>>>>> f4a5b07a294ab5f4189aea1a3e4ac376ae2650e1
+    logger.info("Using Legacy Pipeline v1.0 (OpenAI)")
     violation = doc_summary.get("violation", {})
     vehicle = doc_summary.get("vehicle", {})
     location = doc_summary.get("location", {})
     officer_observation = doc_summary.get("officer_observation", "")
 
-<<<<<<< HEAD
-    # Run analysis
-=======
->>>>>>> f4a5b07a294ab5f4189aea1a3e4ac376ae2650e1
     result = service.analyze_images(
         image_paths=image_paths,
         officer_observation=officer_observation,
@@ -1391,21 +1355,17 @@ def analyze_parking_evidence(
         max_images=max_images
     )
 
-<<<<<<< HEAD
-    # Format for UI
-    return service.format_for_ui(result, lang)
-=======
     return service.format_for_ui(result, lang)
 
 
-def analyze_parking_evidence_v2(
+def analyze_parking_evidence_openai_v2(
     image_paths: List[str],
     doc_summary: Dict[str, Any],
     lang: str = 'nl',
     max_images: int = 10
 ) -> Dict[str, Any]:
     """
-    Convenience function to analyze parking violation evidence using v2 pipeline.
+    Convenience function to analyze parking violation evidence using v2 pipeline with OpenAI.
 
     This function explicitly uses the Legal Reasoning Architecture v2.0
     with the 4-layer pipeline.
@@ -1419,10 +1379,10 @@ def analyze_parking_evidence_v2(
     Returns:
         Full pipeline result (not formatted for legacy UI)
     """
-    if not ANTHROPIC_AVAILABLE:
+    if not OPENAI_AVAILABLE:
         return {
             "success": False,
-            "error": "MLLM service not available - anthropic package not installed"
+            "error": "OpenAI MLLM service not available - openai package not installed"
         }
 
     if not LEGAL_V2_AVAILABLE:
@@ -1431,12 +1391,12 @@ def analyze_parking_evidence_v2(
             "error": "Legal Reasoning v2 modules not available"
         }
 
-    service = ClaudeVisionService()
+    service = OpenAIVisionService()
 
     if not service.is_available():
         return {
             "success": False,
-            "error": "MLLM service not available - ANTHROPIC_API_KEY not configured"
+            "error": "OpenAI MLLM service not available - OPENAI_API_KEY not configured"
         }
 
     return service.run_full_legal_pipeline(
@@ -1445,4 +1405,3 @@ def analyze_parking_evidence_v2(
         lang=lang,
         max_images=max_images
     )
->>>>>>> f4a5b07a294ab5f4189aea1a3e4ac376ae2650e1

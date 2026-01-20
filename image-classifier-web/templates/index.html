@@ -74,9 +74,11 @@
                     <label>{{ t.model_type if t else 'Model Type' }}</label>
                     <select name="model" id="modelSelect">
                         <option value="mllm" selected>MLLM (Claude Vision)</option>
-                        <option value="sam">SAM (Segment Anything)</option>
+                        <option value="openai">MLLM (OpenAI GPT-4o)</option>
+                        <option value="openai_sam" disabled class="coming-soon-option">MLLM (OpenAI+SAM) - Coming Soon</option>
+                        <option value="mock">Mock Data (UI Testing)</option>
                     </select>
-                    <small id="modelDesc">{{ t.model_desc_mllm if t else 'Multi-modal large language model for image analysis' }}</small>
+                    <small id="modelDesc">{{ t.model_desc_mllm if t else 'Claude Vision AI for advanced image analysis' }}</small>
                 </div>
 
                 <button type="submit" class="btn btn-primary full-width" id="submitBtn">
@@ -247,8 +249,10 @@
     const modelSelect = document.getElementById('modelSelect');
     const modelDesc = document.getElementById('modelDesc');
     const modelDescriptions = {
-        'sam': '{{ t.model_desc_sam if t else "Segmentation-based object detection for parking evidence" }}',
-        'mllm': '{{ t.model_desc_mllm if t else "Multi-modal large language model (coming soon)" }}'
+        'mllm': '{{ t.model_desc_mllm if t else "Claude Vision AI for advanced image analysis" }}',
+        'openai': '{{ t.model_desc_openai if t else "OpenAI GPT-4o Vision for advanced image analysis" }}',
+        'openai_sam': '{{ t.model_desc_openai_sam if t else "OpenAI + SAM combined pipeline - Coming Soon" }}',
+        'mock': '{{ t.model_desc_mock if t else "Mock data for UI testing without API calls" }}'
     };
 
     modelSelect.addEventListener('change', function() {

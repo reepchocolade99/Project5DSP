@@ -1,7 +1,11 @@
 from flask import Flask, request, jsonify, render_template, send_from_directory
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
+from dotenv import load_dotenv
 import os
+
+# Load environment variables from .env file
+load_dotenv()
 import json
 import re
 from datetime import datetime
@@ -16,6 +20,9 @@ from sam3_service import SAM3Analyzer, analyze_evidence_images
 
 # Import Claude Vision service for MLLM
 from claude_vision_service import ClaudeVisionService, analyze_parking_evidence
+
+# Import OpenAI Vision service for MLLM
+from openai_vision_service import OpenAIVisionService, analyze_parking_evidence_openai
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -137,6 +144,7 @@ TRANSLATIONS = {
         'new_analysis': 'New Analysis',
         'footer': 'Amsterdam Parking Enforcement System',
         'copy_to_clipboard': 'Copy to clipboard',
+        'copy_btn': 'Copy',
 
         # Not available
         'not_available': 'Not available',
@@ -284,6 +292,7 @@ TRANSLATIONS = {
         'new_analysis': 'Nieuwe Analyse',
         'footer': 'Amsterdam Parkeerhandhaving Systeem',
         'copy_to_clipboard': 'Kopieer naar klembord',
+        'copy_btn': 'Kopiëren',
 
         # Not available
         'not_available': 'Niet beschikbaar',
@@ -353,6 +362,9 @@ TRANSLATIONS = {
         'model_type': 'Model Type',
         'model_desc_sam': 'Segmentatie-gebaseerde objectdetectie voor parkeerbewijzen',
         'model_desc_mllm': 'Claude Vision AI voor geavanceerde beeldanalyse',
+        'model_desc_openai': 'OpenAI GPT-4o Vision voor geavanceerde beeldanalyse',
+        'model_desc_openai_sam': 'OpenAI + SAM gecombineerde pipeline - Binnenkort beschikbaar',
+        'model_desc_mock': 'Testdata voor UI testen zonder API aanroepen',
         'mllm_coming_soon': 'MLLM analyse niet beschikbaar. Controleer API configuratie.',
         'start_analysis': 'Start Analyse & Bewaar Instellingen',
         'header_service': 'Afbeelding Classificatie',
@@ -415,6 +427,9 @@ TRANSLATIONS['en'].update({
     'model_type': 'Model Type',
     'model_desc_sam': 'Segmentation-based object detection for parking evidence',
     'model_desc_mllm': 'Claude Vision AI for advanced image analysis',
+    'model_desc_openai': 'OpenAI GPT-4o Vision for advanced image analysis',
+    'model_desc_openai_sam': 'OpenAI + SAM combined pipeline - Coming Soon',
+    'model_desc_mock': 'Mock data for UI testing without API calls',
     'mllm_coming_soon': 'MLLM analysis not available. Check API configuration.',
     'start_analysis': 'Start Analysis & Save Settings',
     'header_service': 'Image Classifier',
@@ -903,6 +918,224 @@ def calculate_confidence_scores(doc_summary, images):
     return scores
 
 
+def generate_mock_data(doc_summary, extracted_images, lang='en'):
+    """
+    Generate mock data for UI testing without API calls.
+    Simulates a realistic parking violation case with all UI components populated.
+
+    Args:
+        doc_summary: Document summary from PDF extraction
+        extracted_images: List of extracted image filenames
+        lang: Language code (en/nl)
+
+    Returns:
+        dict with sam3_results, detected_items_ui, and confidence_scores
+    """
+    t = get_translations(lang)
+
+    # Get license plate from document or use default
+    kenteken = doc_summary.get('vehicle', {}).get('kenteken', 'AB-123-CD')
+    if kenteken == t['not_available']:
+        kenteken = 'AB-123-CD'
+
+    # Get violation code from document or use default E9
+    violation_code = doc_summary.get('violation', {}).get('code', 'E9')
+    if violation_code == t['not_specified']:
+        violation_code = 'E9'
+
+    # Mock legal statement in both languages
+    legal_statement_nl = f"""Op {datetime.now().strftime('%d-%m-%Y')} om {datetime.now().strftime('%H:%M')} uur zag ik, verbalisant, dat het voertuig met kenteken {kenteken} geparkeerd stond op een parkeergelegenheid bestemd voor vergunninghouders, aangeduid met bord E9.
+
+Ik zag dat er geen geldige parkeervergunning zichtbaar aanwezig was in of aan het voertuig.
+
+Ik zag geen bestuurder in of bij het voertuig.
+
+Op grond van artikel 25 RVV 1990 is het verboden een voertuig te parkeren op een parkeergelegenheid bestemd voor vergunninghouders, indien geen geldige vergunning aanwezig is."""
+
+    legal_statement_en = f"""On {datetime.now().strftime('%Y-%m-%d')} at {datetime.now().strftime('%H:%M')}, I, the officer, observed that the vehicle with license plate {kenteken} was parked in a permit holders only parking area, indicated by sign E9.
+
+I observed that no valid parking permit was visibly present in or on the vehicle.
+
+I did not observe a driver in or near the vehicle.
+
+Pursuant to Article 25 RVV 1990, it is prohibited to park a vehicle in a permit holders only parking area without a valid permit."""
+
+    # Evidence checklist items (4 passed, 1 unverifiable)
+    # Template expects: description, legal_reference, status, confidence, source
+    evidence_checklist = [
+        {
+            'id': 'vehicle_present',
+            'description': 'Vehicle Present' if lang == 'en' else 'Voertuig Aanwezig',
+            'status': 'passed',
+            'confidence': 0.95,
+            'source': 'image',
+            'legal_reference': 'Art. 24 RVV 1990'
+        },
+        {
+            'id': 'license_plate_visible',
+            'description': 'License Plate Visible' if lang == 'en' else 'Kenteken Zichtbaar',
+            'status': 'passed',
+            'confidence': 0.92,
+            'source': 'image',
+            'legal_reference': 'Art. 24 RVV 1990'
+        },
+        {
+            'id': 'sign_e9_visible',
+            'description': 'Sign E9 Visible' if lang == 'en' else 'Bord E9 Zichtbaar',
+            'status': 'passed',
+            'confidence': 0.88,
+            'source': 'image',
+            'legal_reference': 'Art. 25 RVV 1990'
+        },
+        {
+            'id': 'no_permit_visible',
+            'description': 'No Permit Visible' if lang == 'en' else 'Geen Vergunning Zichtbaar',
+            'status': 'passed',
+            'confidence': 0.85,
+            'source': 'image',
+            'legal_reference': 'Art. 25 RVV 1990'
+        },
+        {
+            'id': 'no_driver_present',
+            'description': 'No Driver Present' if lang == 'en' else 'Geen Bestuurder Aanwezig',
+            'status': 'unverifiable',
+            'confidence': 0.60,
+            'source': 'image',
+            'legal_reference': 'Art. 24 RVV 1990',
+            'note': 'Cannot fully verify from static images' if lang == 'en' else 'Kan niet volledig verifiëren vanuit statische beelden'
+        }
+    ]
+
+    # Build the sam3_results structure matching MLLM pipeline v2.0
+    sam3_results = {
+        'mllm_mode': True,
+        'pipeline_version': '2.0',
+        'analysis': {
+            'object_detection': {
+                'vehicle': {
+                    'detected': True,
+                    'confidence': 0.95,
+                    'details': 'Dark grey Volkswagen Golf' if lang == 'en' else 'Donkergrijze Volkswagen Golf'
+                },
+                'license_plate': {
+                    'detected': True,
+                    'confidence': 0.92,
+                    'value': kenteken
+                },
+                'traffic_sign': {
+                    'detected': True,
+                    'confidence': 0.88,
+                    'sign_type': violation_code
+                },
+                'parking_permit': {
+                    'detected': False,
+                    'confidence': 0.85
+                },
+                'driver_present': {
+                    'detected': False,
+                    'confidence': 0.75
+                }
+            }
+        },
+        'image_description': f"The images show a dark grey Volkswagen Golf with license plate {kenteken} parked on a street. The vehicle is positioned in a designated permit holders parking zone, indicated by an E9 sign visible in the images. No parking permit is visible behind the windshield. The parking area appears to be a residential street with parallel parking spaces." if lang == 'en' else f"De beelden tonen een donkergrijze Volkswagen Golf met kenteken {kenteken} geparkeerd op straat. Het voertuig staat geparkeerd in een zone bestemd voor vergunninghouders, aangeduid met een E9 bord dat zichtbaar is in de beelden. Er is geen parkeervergunning zichtbaar achter de voorruit. Het parkeergebied lijkt een woonstraat te zijn met parallel parkeren.",
+        'environmental_context': {
+            'time_of_day': 'Daytime' if lang == 'en' else 'Overdag',
+            'lighting': 'Natural daylight' if lang == 'en' else 'Natuurlijk daglicht',
+            'weather': 'Clear/Overcast' if lang == 'en' else 'Helder/Bewolkt',
+            'street_description': 'Urban residential street with parallel parking spaces' if lang == 'en' else 'Stedelijke woonstraat met parallel parkeerplaatsen'
+        },
+        'verification': {
+            'status': 'supported',
+            'observation_supported': True,
+            'overall_confidence': 0.89,
+            'confidence': 0.89,
+            'message': 'Evidence supports the parking violation observation' if lang == 'en' else 'Bewijs ondersteunt de waarneming van de parkeerovertreding'
+        },
+        'summary': f"Analysis of {len(extracted_images)} evidence images confirms a parking violation. A {doc_summary.get('vehicle', {}).get('merk', 'Volkswagen')} vehicle with plate {kenteken} is parked in an E9 permit zone without a visible permit. No driver was observed. The evidence strongly supports the violation." if lang == 'en' else f"Analyse van {len(extracted_images)} bewijsbeelden bevestigt een parkeerovertreding. Een {doc_summary.get('vehicle', {}).get('merk', 'Volkswagen')} voertuig met kenteken {kenteken} staat geparkeerd in een E9 vergunninghouders zone zonder zichtbare vergunning. Er is geen bestuurder waargenomen. Het bewijs ondersteunt de overtreding sterk.",
+        'legal_assessment': {
+            'violation_confirmed': True,
+            'violation_code': violation_code,
+            'violation_description': t.get(f'violation_{violation_code}', 'Permit holders parking only'),
+            'feit_code': 'R315c',
+            'verification_score': 0.89,
+            'recommendation': 'APPROVE',
+            'legal_references': {
+                'violation_article': 'Art. 25 RVV 1990',
+                'violation_article_url': 'https://wetten.overheid.nl/BWBR0004825/2024-01-01#HoofdstukII_Paragraaf1_Artikel25',
+                'wegslepen_basis': 'Art. 170 WVW 1994',
+                'wegslepen_url': 'https://wetten.overheid.nl/BWBR0006622/2024-01-01#HoofdstukVIII_Artikel170'
+            },
+            'unverifiable_checks': ['no_driver_present']
+        },
+        'evidence_checklist': evidence_checklist,
+        'legal_statement': {
+            'nl': legal_statement_nl,
+            'en': legal_statement_en
+        },
+        'recommendation': {
+            'action': 'APPROVE',
+            'confidence': 0.89,
+            'reasoning': 'All key evidence requirements are met. Vehicle identification confirmed, violation sign documented, and absence of permit verified.' if lang == 'en' else 'Aan alle belangrijke bewijsvereisten is voldaan. Voertuigidentificatie bevestigd, overtredingsbord gedocumenteerd, en afwezigheid van vergunning geverifieerd.'
+        },
+        'recommendation_ui': {
+            'color': 'success',
+            'action': 'approve',
+            'label': 'APPROVE' if lang == 'en' else 'GOEDKEUREN',
+            'icon': 'check-circle',
+            'confidence_display': '89%'
+        }
+    }
+
+    # Build detected_items_ui for the inspector panel
+    # Template expects: label, detected, confidence (as percentage), extracted_text, sign_code
+    detected_items_ui = {
+        'items': [
+            {
+                'label': t['vehicle'],
+                'label_key': 'vehicle',
+                'detected': True,
+                'confidence': 95,
+                'extracted_text': 'Dark grey Volkswagen Golf' if lang == 'en' else 'Donkergrijze Volkswagen Golf'
+            },
+            {
+                'label': t['license_plate'],
+                'label_key': 'license_plate',
+                'detected': True,
+                'confidence': 92,
+                'extracted_text': kenteken
+            },
+            {
+                'label': f"{t['sign']} {violation_code}",
+                'label_key': 'traffic_sign',
+                'detected': True,
+                'confidence': 88,
+                'sign_code': violation_code
+            },
+            {
+                'label': t.get('parking_permit', 'Parking Permit') if lang == 'en' else 'Parkeervergunning',
+                'label_key': 'parking_permit',
+                'detected': False,
+                'confidence': 85
+            }
+        ],
+        'extracted_plate': kenteken,
+        'sign_code': violation_code
+    }
+
+    # Build confidence scores
+    confidence_scores = {
+        'object_detection': 0.92,
+        'text_recognition': 0.89,
+        'legal_reasoning': 0.86
+    }
+
+    return {
+        'sam3_results': sam3_results,
+        'detected_items_ui': detected_items_ui,
+        'confidence_scores': confidence_scores
+    }
+
+
 @app.route('/')
 def index():
     # Default to English, but check if language preference is set
@@ -930,10 +1163,10 @@ def predict():
     if lang not in ['en', 'nl']:
         lang = 'en'
 
-    # Get model type from form (sam or mllm)
-    model_type = request.form.get('model', 'sam')
-    if model_type not in ['sam', 'mllm']:
-        model_type = 'sam'
+    # Get model type from form (sam, mllm, openai, or mock)
+    model_type = request.form.get('model', 'mllm')
+    if model_type not in ['sam', 'mllm', 'openai', 'mock']:
+        model_type = 'mllm'
 
     t = get_translations(lang)
 
@@ -1047,21 +1280,83 @@ def predict():
                     'verification': mllm_ui_data.get('verification'),
                     'image_description': mllm_ui_data.get('image_description'),
                     'environmental_context': mllm_ui_data.get('environmental_context'),
-                    'metadata': mllm_ui_data.get('metadata')
+                    'metadata': mllm_ui_data.get('metadata'),
+                    # Legal Reasoning v2 fields
+                    'pipeline_version': mllm_ui_data.get('pipeline_version', '1.0'),
+                    'legal_assessment': mllm_ui_data.get('legal_assessment'),
+                    'legal_statement': mllm_ui_data.get('legal_statement'),
+                    'evidence_checklist': mllm_ui_data.get('evidence_checklist'),
+                    'recommendation': mllm_ui_data.get('recommendation'),
+                    'recommendation_ui': mllm_ui_data.get('recommendation_ui')
                 }
-                logger.info(f"MLLM analysis completed: {mllm_ui_data.get('metadata', {})}")
+                logger.info(f"MLLM analysis completed (v{mllm_ui_data.get('pipeline_version', '1.0')}): {mllm_ui_data.get('metadata', {})}")
             else:
                 logger.warning(f"MLLM analysis failed: {mllm_ui_data.get('mllm_error')}")
 
         except Exception as e:
             logger.error(f"MLLM analysis failed: {str(e)}")
             # Continue without MLLM results
+    elif model_type == 'openai' and extracted_images:
+        # OpenAI MLLM analysis using GPT-4o Vision
+        try:
+            image_paths = [
+                os.path.join(app.config['DATA_FOLDER'], img)
+                for img in extracted_images
+            ]
 
-    # Generate report sections and confidence scores (now with SAM3/MLLM)
+            # Run OpenAI Vision analysis
+            mllm_ui_data = analyze_parking_evidence_openai(
+                image_paths=image_paths,
+                doc_summary=doc_summary,
+                lang=lang,
+                max_images=10
+            )
+
+            # Extract results for template
+            if mllm_ui_data.get('mllm_analysis'):
+                detected_items_ui = mllm_ui_data.get('detected_items_ui')
+                sam3_results = {
+                    'mllm_mode': True,
+                    'openai_mode': True,  # Flag to indicate OpenAI provider
+                    'analysis': mllm_ui_data.get('mllm_analysis'),
+                    'summary': mllm_ui_data.get('summary'),
+                    'verification': mllm_ui_data.get('verification'),
+                    'image_description': mllm_ui_data.get('image_description'),
+                    'environmental_context': mllm_ui_data.get('environmental_context'),
+                    'metadata': mllm_ui_data.get('metadata'),
+                    # Legal Reasoning v2 fields
+                    'pipeline_version': mllm_ui_data.get('pipeline_version', '1.0'),
+                    'legal_assessment': mllm_ui_data.get('legal_assessment'),
+                    'legal_statement': mllm_ui_data.get('legal_statement'),
+                    'evidence_checklist': mllm_ui_data.get('evidence_checklist'),
+                    'recommendation': mllm_ui_data.get('recommendation'),
+                    'recommendation_ui': mllm_ui_data.get('recommendation_ui')
+                }
+                logger.info(f"OpenAI MLLM analysis completed (v{mllm_ui_data.get('pipeline_version', '1.0')}): {mllm_ui_data.get('metadata', {})}")
+            else:
+                logger.warning(f"OpenAI MLLM analysis failed: {mllm_ui_data.get('mllm_error')}")
+
+        except Exception as e:
+            logger.error(f"OpenAI MLLM analysis failed: {str(e)}")
+            # Continue without MLLM results
+    elif model_type == 'mock':
+        # Mock mode - generate test data without API calls
+        logger.info("Mock mode activated - generating test data")
+        mock_data = generate_mock_data(doc_summary, extracted_images, lang)
+        sam3_results = mock_data['sam3_results']
+        detected_items_ui = mock_data['detected_items_ui']
+        # Store confidence_scores for later use (will be overwritten below if needed)
+        mock_confidence_scores = mock_data['confidence_scores']
+        logger.info(f"Mock data generated: recommendation={sam3_results.get('recommendation', {}).get('action')}")
+
+    # Generate report sections and confidence scores (now with SAM3/MLLM/Mock)
     report_sections = generate_report_sections(doc_summary, extracted_images, lang, sam3_results)
 
     # Calculate confidence scores based on mode
-    if sam3_results and sam3_results.get('mllm_mode'):
+    if model_type == 'mock':
+        # Mock mode - use pre-generated mock confidence scores
+        confidence_scores = mock_confidence_scores
+    elif sam3_results and sam3_results.get('mllm_mode'):
         # MLLM mode - use confidence scores from Claude Vision analysis
         confidence_scores = mllm_ui_data.get('confidence_scores', {
             "object_detection": 0.0,

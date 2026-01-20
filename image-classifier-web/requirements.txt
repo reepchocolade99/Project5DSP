@@ -1,9 +1,11 @@
 Flask
 flask-cors
+python-dotenv
 pymupdf
 Pillow>=9.0.0
 numpy>=1.24.0
 anthropic>=0.18.0
+openai>=1.0.0
 
 # SAM3 Dependencies (optional - for real model inference)
 # Uncomment below when deploying with GPU support

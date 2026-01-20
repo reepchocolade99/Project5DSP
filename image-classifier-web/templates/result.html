@@ -29,10 +29,230 @@
                         <span class="violation-code">{{ doc_summary.violation.code or '?' }}</span>
                         <span class="violation-desc">{{ doc_summary.violation.description or t.parking_violation }}</span>
                     </div>
+                    {% if sam3_results and sam3_results.recommendation_ui %}
+                    <!-- Legal v2: Recommendation Badge - Improved with AlertTriangle for manual review -->
+                    <div class="recommendation-badge {{ sam3_results.recommendation_ui.color }}">
+                        <span class="rec-icon">
+                            {% if sam3_results.recommendation_ui.action == 'approve' %}
+                            <!-- CheckCircle icon -->
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                            {% elif sam3_results.recommendation_ui.action == 'reject' %}
+                            <!-- XCircle icon -->
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="15" y1="9" x2="9" y2="15"></line>
+                                <line x1="9" y1="9" x2="15" y2="15"></line>
+                            </svg>
+                            {% else %}
+                            <!-- AlertTriangle icon for manual review -->
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                <line x1="12" y1="9" x2="12" y2="13"></line>
+                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                            </svg>
+                            {% endif %}
+                        </span>
+                        <span class="rec-label">{{ sam3_results.recommendation_ui.label }}</span>
+                    </div>
+                    {% endif %}
                 </div>
 
-                <!-- Report Sections -->
-                <div class="sections-container">
+                {% if sam3_results and sam3_results.pipeline_version == '2.0' and sam3_results.legal_assessment %}
+                <!-- ==================== LEGAL DECISION AREA (Moved to Main Content) ==================== -->
+
+                <!-- Legal Basis Card - Prominent Position -->
+                <div class="legal-basis-main-card">
+                    <div class="legal-basis-header">
+                        <span class="legal-basis-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 1v6M12 17v6M4.93 4.93l4.24 4.24M14.83 14.83l4.24 4.24M1 12h6M17 12h6M4.93 19.07l4.24-4.24M14.83 9.17l4.24-4.24"/>
+                            </svg>
+                        </span>
+                        <h3>{{ t.legal_basis if t.legal_basis else 'Legal Basis' }}</h3>
+                    </div>
+                    <div class="legal-basis-content">
+                        {% if sam3_results.legal_assessment.legal_references %}
+                        <div class="legal-basis-grid">
+                            <div class="legal-basis-item">
+                                <span class="legal-basis-label">{{ t.primary if t.primary else 'Primary Article' }}</span>
+                                <a href="{{ sam3_results.legal_assessment.legal_references.violation_article_url or '#' }}"
+                                   target="_blank" rel="noopener" class="legal-basis-link">
+                                    {{ sam3_results.legal_assessment.legal_references.violation_article }}
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                        <polyline points="15 3 21 3 21 9"></polyline>
+                                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                                    </svg>
+                                </a>
+                            </div>
+                            <div class="legal-basis-item">
+                                <span class="legal-basis-label">{{ t.towing if t.towing else 'Towing Basis' }}</span>
+                                <a href="{{ sam3_results.legal_assessment.legal_references.wegslepen_url or '#' }}"
+                                   target="_blank" rel="noopener" class="legal-basis-link">
+                                    {{ sam3_results.legal_assessment.legal_references.wegslepen_basis }}
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                        <polyline points="15 3 21 3 21 9"></polyline>
+                                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                                    </svg>
+                                </a>
+                            </div>
+                            <div class="legal-basis-item">
+                                <span class="legal-basis-label">{{ t.feit_code if t.feit_code else 'Feit Code' }}</span>
+                                <span class="feit-code-display">{{ sam3_results.legal_assessment.feit_code }}</span>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Evidence Checklist - With Legend -->
+                {% if sam3_results.evidence_checklist %}
+                <div class="evidence-checklist-main-card">
+                    <div class="checklist-header">
+                        <div class="checklist-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 11l3 3L22 4"></path>
+                                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                            </svg>
+                            <h3>{{ t.evidence_checklist if t.evidence_checklist else 'Evidence Checklist' }}</h3>
+                        </div>
+                        {% if sam3_results.legal_assessment.verification_score is defined %}
+                        <span class="checklist-badge {% if sam3_results.legal_assessment.verification_score >= 0.8 %}success{% elif sam3_results.legal_assessment.verification_score >= 0.5 %}warning{% else %}danger{% endif %}">
+                            {{ (sam3_results.legal_assessment.verification_score * 100)|int }}% Verified
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Legend -->
+                    <div class="checklist-legend">
+                        <span class="legend-item confirmed">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                            Confirmed
+                        </span>
+                        <span class="legend-item unverifiable">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                            </svg>
+                            Unverifiable
+                        </span>
+                        <span class="legend-item failed">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="15" y1="9" x2="9" y2="15"></line>
+                                <line x1="9" y1="9" x2="15" y2="15"></line>
+                            </svg>
+                            Failed
+                        </span>
+                    </div>
+
+                    <!-- Checklist Items -->
+                    <div class="checklist-items-main">
+                        {% for item in sam3_results.evidence_checklist %}
+                        <div class="checklist-item-main {{ item.status }}">
+                            <span class="check-status-icon">
+                                {% if item.status == 'passed' %}
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                </svg>
+                                {% elif item.status == 'failed' %}
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="15" y1="9" x2="9" y2="15"></line>
+                                    <line x1="9" y1="9" x2="15" y2="15"></line>
+                                </svg>
+                                {% else %}
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                </svg>
+                                {% endif %}
+                            </span>
+                            <div class="check-item-content">
+                                <span class="check-item-title">{{ item.description }}</span>
+                                {% if item.legal_reference %}
+                                <span class="check-item-ref">{{ item.legal_reference }}</span>
+                                {% endif %}
+                            </div>
+                            {% if item.confidence %}
+                            <span class="check-item-conf">{{ (item.confidence * 100)|int }}%</span>
+                            {% endif %}
+                            {% if item.source == 'officer' %}
+                            <span class="check-item-source">from officer</span>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    {% if sam3_results.legal_assessment.unverifiable_checks %}
+                    <div class="unverifiable-note">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                        <span>{{ sam3_results.legal_assessment.unverifiable_checks|length }} item(s) could not be verified from image evidence</span>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Legal Statement - Enhanced and Prominent -->
+                {% if sam3_results.legal_statement %}
+                <div class="legal-statement-main-card">
+                    <div class="statement-header">
+                        <div class="statement-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                            </svg>
+                            <h3>{{ t.legal_statement if t.legal_statement else 'Legal Statement' }}</h3>
+                        </div>
+                        <div class="statement-controls">
+                            <div class="lang-tabs">
+                                <button class="lang-tab {% if lang == 'nl' %}active{% endif %}" data-lang="nl">Nederlands</button>
+                                <button class="lang-tab {% if lang == 'en' %}active{% endif %}" data-lang="en">English</button>
+                            </div>
+                            <button class="copy-statement-main-btn" title="{{ t.copy_to_clipboard }}">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                                <span>{{ t.copy_btn if t.copy_btn else 'Copy' }}</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="statement-body">
+                        <div class="statement-text-main {% if lang == 'nl' %}active{% endif %}" id="mainLegalStatementNL">
+                            <p>{{ sam3_results.legal_statement.nl }}</p>
+                        </div>
+                        <div class="statement-text-main {% if lang == 'en' %}active{% endif %}" id="mainLegalStatementEN">
+                            <p>{{ sam3_results.legal_statement.en }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Additional Details Header -->
+                <div class="additional-details-header">
+                    <h4>{{ t.additional_details if t.additional_details else 'Additional Details' }}</h4>
+                </div>
+                {% endif %}
+
+                <!-- Report Sections (AI-generated content) -->
+                <div class="sections-container {% if sam3_results and sam3_results.pipeline_version == '2.0' %}collapsible-sections{% endif %}">
                     {% for section in report_sections %}
                     {% if section.source != 'document' %}
                     <div class="report-section" data-section-id="{{ section.id }}">
@@ -288,6 +508,8 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Legal v2 components moved to main content area -->
             </div>
         </div>
     </div>
@@ -491,16 +713,51 @@
         </div>
     </div>
 
-    <!-- Bottom Actions Bar -->
-    <div class="bottom-actions">
-        <a href="/" class="btn btn-outline back-btn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="19" y1="12" x2="5" y2="12"></line>
-                <polyline points="12 19 5 12 12 5"></polyline>
-            </svg>
-            {{ t.new_analysis }}
-        </a>
-        <span class="footer-note">{{ t.footer }}</span>
+    <!-- Quick Actions Bar (Fixed Bottom) -->
+    <div class="quick-actions-bar">
+        <div class="quick-actions-content">
+            <!-- Left: Back to New Analysis -->
+            <a href="/" class="action-btn action-btn-outline">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                {{ t.new_analysis }}
+            </a>
+
+            <!-- Right: Action Buttons -->
+            <div class="quick-actions-right">
+                <button class="action-btn action-btn-outline" id="quickDownloadPdfBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    {{ t.download_pdf if t.download_pdf else 'Download PDF' }}
+                </button>
+
+                <button class="action-btn action-btn-outline" id="quickExportJsonBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                    </svg>
+                    {{ t.export_json }}
+                </button>
+
+                {% if sam3_results and sam3_results.pipeline_version == '2.0' and sam3_results.recommendation %}
+                {% if sam3_results.recommendation.action == 'approve' %}
+                <button class="action-btn action-btn-primary" id="quickApproveBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    {{ t.approve if t.approve else 'Approve Case' }}
+                </button>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
     </div>
 </main>
 
@@ -688,6 +945,155 @@ document.addEventListener('DOMContentLoaded', function() {
         el.addEventListener('input', () => {
             el.classList.add('modified');
         });
+    });
+
+    // Legal Statement Language Tabs (v2)
+    const statementTabBtns = document.querySelectorAll('.statement-tab-btn');
+    const statementTexts = document.querySelectorAll('.statement-text');
+
+    statementTabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetLang = btn.dataset.lang;
+
+            // Update tab buttons
+            statementTabBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // Update content
+            statementTexts.forEach(text => {
+                text.classList.remove('active');
+                if (text.id === 'legalStatement' + targetLang.toUpperCase()) {
+                    text.classList.add('active');
+                }
+            });
+        });
+    });
+
+    // Copy Legal Statement (v2) - Sidebar version
+    const copyStatementBtn = document.querySelector('.copy-statement-btn');
+    if (copyStatementBtn) {
+        copyStatementBtn.addEventListener('click', () => {
+            // Get the active statement text
+            const activeStatement = document.querySelector('.statement-text.active p');
+            if (activeStatement) {
+                navigator.clipboard.writeText(activeStatement.textContent).then(() => {
+                    copyStatementBtn.classList.add('copied');
+                    const originalText = copyStatementBtn.innerHTML;
+                    copyStatementBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> {{ t.copied if t.copied else "Copied!" }}';
+                    setTimeout(() => {
+                        copyStatementBtn.classList.remove('copied');
+                        copyStatementBtn.innerHTML = originalText;
+                    }, 2000);
+                });
+            }
+        });
+    }
+
+    // ==================== NEW MAIN CONTENT COMPONENT HANDLERS ====================
+
+    // Main Legal Statement Language Tabs
+    const mainLangTabs = document.querySelectorAll('.lang-tab');
+    const mainStatementTexts = document.querySelectorAll('.statement-text-main');
+
+    mainLangTabs.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetLang = btn.dataset.lang;
+
+            // Update tab buttons
+            mainLangTabs.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // Update content
+            mainStatementTexts.forEach(text => {
+                text.classList.remove('active');
+                if (text.id === 'mainLegalStatement' + targetLang.toUpperCase()) {
+                    text.classList.add('active');
+                }
+            });
+        });
+    });
+
+    // Main Legal Statement Copy Button
+    const copyMainStatementBtn = document.querySelector('.copy-statement-main-btn');
+    if (copyMainStatementBtn) {
+        copyMainStatementBtn.addEventListener('click', () => {
+            const activeStatement = document.querySelector('.statement-text-main.active p');
+            if (activeStatement) {
+                navigator.clipboard.writeText(activeStatement.textContent).then(() => {
+                    copyMainStatementBtn.classList.add('copied');
+                    const originalHTML = copyMainStatementBtn.innerHTML;
+                    copyMainStatementBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg><span>{{ t.copied if t.copied else "Copied!" }}</span>';
+                    setTimeout(() => {
+                        copyMainStatementBtn.classList.remove('copied');
+                        copyMainStatementBtn.innerHTML = originalHTML;
+                    }, 2000);
+                });
+            }
+        });
+    }
+
+    // Collapsible AI Sections (for v2 pipeline)
+    const collapsibleSections = document.querySelector('.collapsible-sections');
+    if (collapsibleSections) {
+        const sections = collapsibleSections.querySelectorAll('.report-section');
+        sections.forEach(section => {
+            const header = section.querySelector('.section-header');
+            if (header) {
+                // Start collapsed by default
+                section.classList.add('collapsed');
+
+                header.addEventListener('click', (e) => {
+                    // Don't collapse if clicking on copy button
+                    if (e.target.closest('.copy-btn')) return;
+                    section.classList.toggle('collapsed');
+                });
+            }
+        });
+    }
+
+    // ==================== QUICK ACTIONS BAR HANDLERS ====================
+
+    // Quick Download PDF Button
+    document.getElementById('quickDownloadPdfBtn')?.addEventListener('click', () => {
+        // Trigger print dialog for PDF
+        window.print();
+    });
+
+    // Quick Export JSON Button
+    document.getElementById('quickExportJsonBtn')?.addEventListener('click', () => {
+        const docSummary = JSON.parse(document.getElementById('docSummaryData').textContent);
+        const reportSections = JSON.parse(document.getElementById('reportSectionsData').textContent);
+        const confidence = JSON.parse(document.getElementById('confidenceData').textContent);
+        const sam3DataEl = document.getElementById('sam3Data');
+        const sam3Export = sam3DataEl ? JSON.parse(sam3DataEl.textContent) : null;
+
+        const exportData = {
+            document_summary: docSummary,
+            report_sections: reportSections,
+            confidence_scores: confidence,
+            sam3_analysis: sam3Export,
+            exported_at: new Date().toISOString()
+        };
+
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'parking-case-export.json';
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+
+    // Quick Approve Button (if present)
+    document.getElementById('quickApproveBtn')?.addEventListener('click', () => {
+        // Show confirmation and mark as approved
+        if (confirm('{{ t.confirm_approve if t.confirm_approve else "Are you sure you want to approve this case?" }}')) {
+            const btn = document.getElementById('quickApproveBtn');
+            btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> {{ t.approved if t.approved else "Approved" }}';
+            btn.disabled = true;
+            btn.style.opacity = '0.7';
+            btn.style.cursor = 'default';
+        }
     });
 });
 </script>
