@@ -1,12 +1,10 @@
 """
 Claude Vision Service for MLLM-based parking violation image analysis.
 
-<<<<<<< HEAD
 This service:
 1. Accepts images + police observation context
 2. Calls Claude Vision API with structured prompts
 3. Returns semantic metadata aligned with parking enforcement domain
-=======
 This service implements the Legal Reasoning Architecture v2.0:
 - Layer 1: Document Parser (handled by server.py)
 - Layer 2: Objective Image Analysis (MLLM observes, does NOT interpret legally)
@@ -14,7 +12,6 @@ This service implements the Legal Reasoning Architecture v2.0:
 - Layer 4: Officer Validation & Citation Generation
 
 Version: 2.0 with backward compatibility
->>>>>>> f4a5b07a294ab5f4189aea1a3e4ac376ae2650e1
 """
 
 import base64
@@ -33,10 +30,6 @@ except ImportError:
     anthropic = None
     ANTHROPIC_AVAILABLE = False
 
-<<<<<<< HEAD
-logger = logging.getLogger(__name__)
-
-=======
 # Import Legal Reasoning v2 modules
 try:
     from legal import (
@@ -71,7 +64,6 @@ logger = logging.getLogger(__name__)
 # Set to False to use the original prompt (backward compatibility)
 USE_LEGAL_PIPELINE_V2 = True
 
->>>>>>> f4a5b07a294ab5f4189aea1a3e4ac376ae2650e1
 
 class ClaudeVisionService:
     """
@@ -625,8 +617,6 @@ Antwoord ALLEEN met valid JSON in dit exacte format (geen andere tekst). ALLE TE
             "metadata": analysis.get("_metadata", {})
         }
 
-<<<<<<< HEAD
-=======
     # =========================================================================
     # LEGAL REASONING ARCHITECTURE v2.0 - New Methods
     # =========================================================================
@@ -1294,19 +1284,14 @@ Antwoord ALLEEN met valid JSON in dit exacte format (geen andere tekst). ALLE TE
             "_legal_assessment": legal
         }
 
->>>>>>> f4a5b07a294ab5f4189aea1a3e4ac376ae2650e1
 
 # Convenience function for direct use
 def analyze_parking_evidence(
     image_paths: List[str],
     doc_summary: Dict[str, Any],
     lang: str = 'nl',
-<<<<<<< HEAD
-    max_images: int = 10
-=======
     max_images: int = 10,
     use_v2_pipeline: bool = None
->>>>>>> f4a5b07a294ab5f4189aea1a3e4ac376ae2650e1
 ) -> Dict[str, Any]:
     """
     Convenience function to analyze parking violation evidence.
@@ -1316,11 +1301,8 @@ def analyze_parking_evidence(
         doc_summary: Document summary from PDF extraction
         lang: Language code
         max_images: Maximum images to analyze
-<<<<<<< HEAD
-=======
         use_v2_pipeline: Whether to use Legal Reasoning v2 pipeline.
                         If None, uses USE_LEGAL_PIPELINE_V2 flag.
->>>>>>> f4a5b07a294ab5f4189aea1a3e4ac376ae2650e1
 
     Returns:
         Formatted results for UI
@@ -1351,9 +1333,6 @@ def analyze_parking_evidence(
             }
         }
 
-<<<<<<< HEAD
-    # Extract data from doc_summary
-=======
     # Determine which pipeline to use
     should_use_v2 = use_v2_pipeline if use_v2_pipeline is not None else USE_LEGAL_PIPELINE_V2
 
@@ -1370,16 +1349,11 @@ def analyze_parking_evidence(
 
     # Fallback to v1 pipeline
     logger.info("Using Legacy Pipeline v1.0")
->>>>>>> f4a5b07a294ab5f4189aea1a3e4ac376ae2650e1
     violation = doc_summary.get("violation", {})
     vehicle = doc_summary.get("vehicle", {})
     location = doc_summary.get("location", {})
     officer_observation = doc_summary.get("officer_observation", "")
 
-<<<<<<< HEAD
-    # Run analysis
-=======
->>>>>>> f4a5b07a294ab5f4189aea1a3e4ac376ae2650e1
     result = service.analyze_images(
         image_paths=image_paths,
         officer_observation=officer_observation,
@@ -1391,10 +1365,6 @@ def analyze_parking_evidence(
         max_images=max_images
     )
 
-<<<<<<< HEAD
-    # Format for UI
-    return service.format_for_ui(result, lang)
-=======
     return service.format_for_ui(result, lang)
 
 
@@ -1445,4 +1415,3 @@ def analyze_parking_evidence_v2(
         lang=lang,
         max_images=max_images
     )
->>>>>>> f4a5b07a294ab5f4189aea1a3e4ac376ae2650e1

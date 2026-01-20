@@ -75,13 +75,14 @@ TRANSLATIONS = {
         'system': 'System',
 
         # Section titles
-        'section_1': '1. Image Description',
-        'section_2': '2. Object Detection Analysis',
+        'section_1': '1. Visual Analysis of the Image',
+        'section_2': '2. Detected Objects & Elements',
         'section_3': '3. Timestamp & Location Verification',
         'section_4': '4. Environmental Context',
         'section_5': '5. Legal Reasoning',
         'section_6': '6. Supporting Evidence',
         'section_7': '7. Confidence Summary',
+
 
         # Inspector
         'evidence_inspector': 'Evidence Inspector',
