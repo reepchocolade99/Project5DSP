@@ -1,9 +1,9 @@
 {
   "source_pdf": "/Users/berkbahcetepe/Desktop/Project5DSP/image-classifier-web/uploads/Proces_verbaal_wegslepenvoertuiggeanonimiseerd.pdf",
-  "extraction_time_utc": "2026-01-17T20:40:08.154066+00:00",
+  "extraction_time_utc": "2026-01-23T16:06:25.793804+00:00",
   "images": [
     {
-      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p03_img01_v5.jpg",
+      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p03_img01_v44.jpg",
       "page": 3,
       "index_on_page": 1,
       "method": "embedded",
@@ -11,7 +11,7 @@
       "height": 1023
     },
     {
-      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p03_img02_v5.jpg",
+      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p03_img02_v44.jpg",
       "page": 3,
       "index_on_page": 2,
       "method": "embedded",
@@ -19,7 +19,7 @@
       "height": 461
     },
     {
-      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p04_img01_v5.jpg",
+      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p04_img01_v44.jpg",
       "page": 4,
       "index_on_page": 1,
       "method": "embedded",
@@ -27,7 +27,7 @@
       "height": 461
     },
     {
-      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p04_img02_v5.jpg",
+      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p04_img02_v44.jpg",
       "page": 4,
       "index_on_page": 2,
       "method": "embedded",
@@ -35,7 +35,7 @@
       "height": 461
     },
     {
-      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p04_img03_v5.jpg",
+      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p04_img03_v44.jpg",
       "page": 4,
       "index_on_page": 3,
       "method": "embedded",
@@ -43,7 +43,7 @@
       "height": 461
     },
     {
-      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p04_img04_v5.jpg",
+      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p04_img04_v44.jpg",
       "page": 4,
       "index_on_page": 4,
       "method": "embedded",
@@ -51,7 +51,7 @@
       "height": 461
     },
     {
-      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p04_img05_v5.jpg",
+      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p04_img05_v44.jpg",
       "page": 4,
       "index_on_page": 5,
       "method": "embedded",
@@ -59,7 +59,7 @@
       "height": 461
     },
     {
-      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p04_img06_v5.jpg",
+      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p04_img06_v44.jpg",
       "page": 4,
       "index_on_page": 6,
       "method": "embedded",
@@ -67,7 +67,7 @@
       "height": 290
     },
     {
-      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p04_img07_v5.jpg",
+      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p04_img07_v44.jpg",
       "page": 4,
       "index_on_page": 7,
       "method": "embedded",
@@ -75,7 +75,7 @@
       "height": 461
     },
     {
-      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p04_img08_v5.jpg",
+      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p04_img08_v44.jpg",
       "page": 4,
       "index_on_page": 8,
       "method": "embedded",
@@ -83,7 +83,7 @@
       "height": 461
     },
     {
-      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p04_img09_v5.jpg",
+      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p04_img09_v44.jpg",
       "page": 4,
       "index_on_page": 9,
       "method": "embedded",
@@ -91,7 +91,7 @@
       "height": 461
     },
     {
-      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p04_img10_v5.jpg",
+      "file": "Proces_verbaal_wegslepenvoertuiggeanonimiseerd_p04_img10_v44.jpg",
       "page": 4,
       "index_on_page": 10,
       "method": "embedded",

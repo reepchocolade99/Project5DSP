@@ -12,6 +12,85 @@ from typing import Optional
 
 
 LEGAL_TEMPLATES = {
+    # ─────────────────────────────────────────────────────────────────────────
+    # E1 - Parkeerverbod (No Parking Zone)
+    # ─────────────────────────────────────────────────────────────────────────
+    "E1": {
+        "template_nl": """Ik zag dat het voertuig geparkeerd stond in een zone waar een parkeerverbod gold, aangeduid door bord E1 RVV 1990. {sub_sign_clause} Ik zag geen geldige ontheffing zichtbaar aanwezig in of aan het voertuig. Bij het constateren van het feit werd vastgesteld dat er gedurende een tijd van ongeveer {observation_time} minuten geen activiteit met betrekking tot het voertuig plaats vond, zodat er geen sprake was van onmiddellijk laden of lossen van goederen, dan wel het in of uit laten stappen van personen.""",
+
+        "template_en": """I observed that the vehicle was parked in a no-parking zone indicated by sign E1 RVV 1990. {sub_sign_clause} No valid exemption was visible in or on the vehicle. When establishing the violation, it was determined that for a period of approximately {observation_time} minutes no activity related to the vehicle took place, meaning there was no immediate loading or unloading of goods, nor persons getting in or out.""",
+
+        "sub_sign_clauses": {
+            "general_nl": "Het bord was duidelijk zichtbaar aanwezig.",
+            "general_en": "The sign was clearly visible.",
+            "with_times_nl": "Het verbod geldt {time_window}.",
+            "with_times_en": "The prohibition applies {time_window}."
+        },
+
+        "default_context": {
+            "observation_time": "5",
+            "sub_sign_clause": "",
+            "time_window": ""
+        }
+    },
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # E2 - Verbod stil te staan (No Stopping Zone)
+    # ─────────────────────────────────────────────────────────────────────────
+    "E2": {
+        "template_nl": """Ik zag dat het voertuig stilstond in een zone waar een verbod stil te staan gold, aangeduid door bord E2 RVV 1990. {sub_sign_clause} Ik zag geen geldige ontheffing zichtbaar aanwezig in of aan het voertuig.""",
+
+        "template_en": """I observed that the vehicle was stopped in a no-stopping zone indicated by sign E2 RVV 1990. {sub_sign_clause} No valid exemption was visible in or on the vehicle.""",
+
+        "sub_sign_clauses": {
+            "general_nl": "Het bord was duidelijk zichtbaar aanwezig.",
+            "general_en": "The sign was clearly visible.",
+            "with_times_nl": "Het verbod geldt {time_window}.",
+            "with_times_en": "The prohibition applies {time_window}."
+        },
+
+        "default_context": {
+            "sub_sign_clause": "",
+            "time_window": ""
+        }
+    },
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # E4 - Parkeergelegenheid (Parking Facility with conditions)
+    # ─────────────────────────────────────────────────────────────────────────
+    "E4": {
+        "template_nl": """Ik zag dat het voertuig geparkeerd stond op een parkeergelegenheid aangeduid door bord E4 RVV 1990{sub_sign_clause}. Het voertuig voldeed niet aan de op het onderbord aangegeven voorwaarden. Bij het constateren van het feit werd vastgesteld dat er gedurende een tijd van ongeveer {observation_time} minuten geen activiteit met betrekking tot het voertuig plaats vond.""",
+
+        "template_en": """I observed that the vehicle was parked in a parking facility indicated by sign E4 RVV 1990{sub_sign_clause}. The vehicle did not meet the conditions stated on the sub-sign. When establishing the violation, it was determined that for a period of approximately {observation_time} minutes no activity related to the vehicle took place.""",
+
+        "sub_sign_clauses": {
+            "with_subsign_nl": " met onderbord \"{sub_sign_text}\"",
+            "with_subsign_en": " with sub-sign \"{sub_sign_text}\"",
+            "no_subsign_nl": "",
+            "no_subsign_en": ""
+        },
+
+        "default_context": {
+            "observation_time": "5",
+            "sub_sign_clause": "",
+            "sub_sign_text": ""
+        }
+    },
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # E5 - Taxistandplaats (Taxi Stand)
+    # ─────────────────────────────────────────────────────────────────────────
+    "E5": {
+        "template_nl": """Ik zag dat het voertuig geparkeerd stond op een taxistandplaats, aangeduid door bord E5 RVV 1990. Het voertuig betrof geen taxi. Ik zag geen geldige ontheffing zichtbaar aanwezig in of aan het voertuig. Tevens zag ik geen bestuurder in of rondom het voertuig.""",
+
+        "template_en": """I observed that the vehicle was parked at a taxi stand indicated by sign E5 RVV 1990. The vehicle was not a taxi. No valid exemption was visible in or on the vehicle. Additionally, no driver was present in or around the vehicle.""",
+
+        "default_context": {}
+    },
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # E6 - Gehandicaptenparkeerplaats (Disabled Parking)
+    # ─────────────────────────────────────────────────────────────────────────
     "E6": {
         "template_nl": """Ik zag dat het voertuig geparkeerd stond op een door bord E6 RVV 1990 aangeduide gehandicaptenparkeerplaats. {sub_sign_clause} Ik heb geen geldige gehandicaptenparkeerkaart waargenomen achter de voorruit van het voertuig{card_reason}. Bij het constateren van het feit werd vastgesteld dat er gedurende een tijd van ongeveer {observation_time} minuten geen activiteit met betrekking tot het voertuig plaats vond, zodat er geen sprake was van onmiddellijk laden of lossen van goederen, dan wel het in of uit laten stappen van personen.""",
 
@@ -107,6 +186,19 @@ LEGAL_TEMPLATES = {
         }
     },
 
+    # ─────────────────────────────────────────────────────────────────────────
+    # YELLOW_LINE - Gele doorgetrokken streep (Yellow Continuous Line)
+    # ─────────────────────────────────────────────────────────────────────────
+    "YELLOW_LINE": {
+        "template_nl": """Ik zag dat het voertuig stil stond langs een gele doorgetrokken streep als bedoeld in artikel 23, eerste lid, sub c, van het RVV 1990. De gele streep was duidelijk zichtbaar op de rijbaan. Bij het constateren van het feit werd vastgesteld dat er gedurende een tijd van ongeveer {observation_time} minuten geen activiteit met betrekking tot het voertuig plaats vond, zodat er geen sprake was van onmiddellijk laden of lossen van goederen, dan wel het in of uit laten stappen van personen.""",
+
+        "template_en": """I observed that the vehicle was stopped alongside a yellow continuous line as referred to in Article 23, paragraph 1, sub c, of RVV 1990. The yellow line was clearly visible on the roadway. When establishing the violation, it was determined that for a period of approximately {observation_time} minutes no activity related to the vehicle took place, meaning there was no immediate loading or unloading of goods, nor persons getting in or out.""",
+
+        "default_context": {
+            "observation_time": "5"
+        }
+    },
+
     "ELECTRIC_CHARGING": {
         "template_nl": """Ik zag dat het voertuig geparkeerd stond op een oplaadpunt voor elektrische voertuigen, aangeduid door bord E4 met oplaadsymbool. Het voertuig was niet aangesloten op het oplaadpunt. Derhalve is sprake van parkeren op een oplaadpunt zonder daarvan gebruik te maken.""",
 
@@ -119,6 +211,22 @@ LEGAL_TEMPLATES = {
 
 # Legal conclusion templates (formal legal language)
 LEGAL_CONCLUSION_TEMPLATES = {
+    "E1": {
+        "nl": "Derhalve is sprake van een overtreding van artikel 62 jo. bord E1 van het RVV 1990. Op grond van artikel 170, eerste lid, sub c, van de Wegenverkeerswet 1994 is verwijdering van het voertuig gerechtvaardigd.",
+        "en": "Therefore, this constitutes a violation of Article 62 in conjunction with sign E1 of RVV 1990. Under Article 170, paragraph 1, sub c, of the Road Traffic Act 1994, removal of the vehicle is justified."
+    },
+    "E2": {
+        "nl": "Derhalve is sprake van een overtreding van artikel 62 jo. bord E2 van het RVV 1990. Op grond van artikel 170, eerste lid, sub c, van de Wegenverkeerswet 1994 is verwijdering van het voertuig gerechtvaardigd.",
+        "en": "Therefore, this constitutes a violation of Article 62 in conjunction with sign E2 of RVV 1990. Under Article 170, paragraph 1, sub c, of the Road Traffic Act 1994, removal of the vehicle is justified."
+    },
+    "E4": {
+        "nl": "Derhalve is sprake van een overtreding van artikel 62 jo. bord E4 van het RVV 1990. Op grond van artikel 170, eerste lid, sub c, van de Wegenverkeerswet 1994 is verwijdering van het voertuig gerechtvaardigd.",
+        "en": "Therefore, this constitutes a violation of Article 62 in conjunction with sign E4 of RVV 1990. Under Article 170, paragraph 1, sub c, of the Road Traffic Act 1994, removal of the vehicle is justified."
+    },
+    "E5": {
+        "nl": "Derhalve is sprake van een overtreding van artikel 62 jo. bord E5 van het RVV 1990. Op grond van artikel 170, eerste lid, sub c, van de Wegenverkeerswet 1994 is verwijdering van het voertuig gerechtvaardigd.",
+        "en": "Therefore, this constitutes a violation of Article 62 in conjunction with sign E5 of RVV 1990. Under Article 170, paragraph 1, sub c, of the Road Traffic Act 1994, removal of the vehicle is justified."
+    },
     "E6": {
         "nl": "Derhalve is sprake van een overtreding van artikel 26 van het RVV 1990. Op grond van artikel 2, onder e, van het Besluit wegslepen van voertuigen is verwijdering van het voertuig gerechtvaardigd.",
         "en": "Therefore, this constitutes a violation of Article 26 of RVV 1990. Under Article 2, under e, of the Vehicle Towing Decree, removal of the vehicle is justified."
@@ -131,13 +239,29 @@ LEGAL_CONCLUSION_TEMPLATES = {
         "nl": "Derhalve is sprake van een overtreding van artikel 24, eerste lid, onder f, van het RVV 1990. Op grond van artikel 2, onder f, van het Besluit wegslepen van voertuigen is verwijdering van het voertuig gerechtvaardigd.",
         "en": "Therefore, this constitutes a violation of Article 24, paragraph 1, under f, of RVV 1990. Under Article 2, under f, of the Vehicle Towing Decree, removal of the vehicle is justified."
     },
+    "E8": {
+        "nl": "Derhalve is sprake van een overtreding van artikel 62 jo. bord E8 van het RVV 1990. Op grond van artikel 170, eerste lid, sub c, van de Wegenverkeerswet 1994 is verwijdering van het voertuig gerechtvaardigd.",
+        "en": "Therefore, this constitutes a violation of Article 62 in conjunction with sign E8 of RVV 1990. Under Article 170, paragraph 1, sub c, of the Road Traffic Act 1994, removal of the vehicle is justified."
+    },
     "E9": {
         "nl": "Derhalve is sprake van een overtreding van artikel 24, eerste lid, onder g, van het RVV 1990. Op grond van artikel 2, onder h, van het Besluit wegslepen van voertuigen is verwijdering van het voertuig noodzakelijk in verband met het vrijhouden van aangewezen weggedeelten.",
         "en": "Therefore, this constitutes a violation of Article 24, paragraph 1, under g, of RVV 1990. Under Article 2, under h, of the Vehicle Towing Decree, removal of the vehicle is necessary to keep designated road sections clear."
     },
+    "E10": {
+        "nl": "Derhalve is sprake van een overtreding van artikel 25 van het RVV 1990. Op grond van artikel 170, eerste lid, sub c, van de Wegenverkeerswet 1994 is verwijdering van het voertuig gerechtvaardigd.",
+        "en": "Therefore, this constitutes a violation of Article 25 of RVV 1990. Under Article 170, paragraph 1, sub c, of the Road Traffic Act 1994, removal of the vehicle is justified."
+    },
     "G7": {
         "nl": "Derhalve is sprake van een overtreding van artikel 87 van het RVV 1990. Op grond van artikel 2, onder i, van het Besluit wegslepen van voertuigen is verwijdering van het voertuig gerechtvaardigd.",
         "en": "Therefore, this constitutes a violation of Article 87 of RVV 1990. Under Article 2, under i, of the Vehicle Towing Decree, removal of the vehicle is justified."
+    },
+    "R396I": {
+        "nl": "Derhalve is sprake van een overtreding van artikel 23, eerste lid, sub c, van het RVV 1990. Op grond van artikel 2 van het Besluit wegslepen van voertuigen is verwijdering van het voertuig gerechtvaardigd.",
+        "en": "Therefore, this constitutes a violation of Article 23, paragraph 1, sub c, of RVV 1990. Under Article 2 of the Vehicle Towing Decree, removal of the vehicle is justified."
+    },
+    "YELLOW_LINE": {
+        "nl": "Derhalve is sprake van een overtreding van artikel 23, eerste lid, sub c, van het RVV 1990. Op grond van artikel 2 van het Besluit wegslepen van voertuigen is verwijdering van het voertuig gerechtvaardigd.",
+        "en": "Therefore, this constitutes a violation of Article 23, paragraph 1, sub c, of RVV 1990. Under Article 2 of the Vehicle Towing Decree, removal of the vehicle is justified."
     },
     "ELECTRIC_CHARGING": {
         "nl": "Derhalve is sprake van een overtreding van artikel 24, eerste lid, onder d, van het RVV 1990. Op grond van de gemeentelijke verordening is verwijdering van het voertuig gerechtvaardigd.",

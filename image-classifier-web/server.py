@@ -24,6 +24,36 @@ from claude_vision_service import ClaudeVisionService, analyze_parking_evidence
 # Import OpenAI Vision service for MLLM
 from openai_vision_service import OpenAIVisionService, analyze_parking_evidence_openai
 
+# Import SAM3 Detection Service and Confidence Merger for parallel architecture
+from sam3_detection_service import run_sam3_analysis, get_sam3_service
+from confidence_merger import (
+    ConfidenceMerger,
+    merge_confidences,
+    generate_evidence_checklist,
+    prepare_detected_items_for_display
+)
+
+# Import for parallel processing
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# Import centralized violation codes for R-code to E-code mapping
+from legal.violation_codes import (
+    get_violation_from_r_code,
+    get_violation_info,
+    get_legal_reference,
+    normalize_violation_code,
+    VIOLATION_REGISTRY
+)
+
+# Import decision trees for legal references
+from legal.decision_trees import LEGAL_DECISION_TREES
+
+# Import recommendation logic based on Evidence Checklist
+from legal.thresholds import determine_action, format_action_for_ui
+
+# Import legal statement generator for proper legal output
+from legal.templates import generate_legal_statement
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -41,8 +71,16 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['DATA_FOLDER'] = DATA_FOLDER
 app.config['DERIVED_FOLDER'] = DERIVED_FOLDER
 
-# Initialize SAM3 Analyzer (mock mode for development)
-sam3_analyzer = SAM3Analyzer(output_dir=DERIVED_FOLDER, mock_mode=True)
+# ═══════════════════════════════════════════════════════════════════════
+# SAM MODEL CONFIGURATION
+# ═══════════════════════════════════════════════════════════════════════
+# Set SAM_MOCK_MODE=true in .env to use mock data (no GPU required)
+# Set SAM_MOCK_MODE=false (default) to use real GroundingDINO + SAM models
+SAM_MOCK_MODE = os.getenv('SAM_MOCK_MODE', 'false').lower() == 'true'
+logger.info(f"SAM Mock Mode: {SAM_MOCK_MODE} (set SAM_MOCK_MODE=true in .env to enable)")
+
+# Initialize SAM3 Analyzer
+sam3_analyzer = SAM3Analyzer(output_dir=DERIVED_FOLDER, mock_mode=SAM_MOCK_MODE)
 
 # Initialize Claude Vision Service for MLLM
 claude_vision_service = ClaudeVisionService()
@@ -188,12 +226,24 @@ TRANSLATIONS = {
         'violation_E12': 'Park and ride facility',
         'violation_E13': 'Carpool parking',
         'violation_G7': 'Footpath / Pedestrian area',
+        'violation_R396I': 'Yellow continuous line (no stopping)',
+        'violation_YELLOW_LINE': 'Yellow continuous line (no stopping)',
 
         # Legal phrases (English summaries - Dutch quotes remain in Dutch)
-        'legal_E9_summary': 'The vehicle was parked in a permit holders only area without a valid permit visible.',
+        'legal_E1_summary': 'The vehicle was parked in a no-parking zone indicated by sign E1 without a valid exemption.',
+        'legal_E2_summary': 'The vehicle was stopped in a no-stopping zone indicated by sign E2 without a valid exemption.',
+        'legal_E4_summary': 'The vehicle was parked in violation of the parking conditions indicated by sign E4.',
+        'legal_E5_summary': 'The vehicle was parked at a taxi stand indicated by sign E5 without being a taxi.',
         'legal_E6_summary': 'The vehicle was parked in a disabled parking space without a valid disabled parking card visible.',
         'legal_E7_summary': 'The vehicle was parked in a loading/unloading zone without active loading/unloading activities.',
+        'legal_E8_summary': 'The vehicle was parked in a space designated for specific vehicles without being the designated vehicle type.',
+        'legal_E9_summary': 'The vehicle was parked in a permit holders only area without a valid permit visible.',
+        'legal_E10_summary': 'The vehicle was parked in a parking disc zone without displaying a valid parking disc.',
+        'legal_E12_summary': 'The vehicle was parked at a Park and Ride facility in violation of the conditions.',
+        'legal_E13_summary': 'The vehicle was parked at a carpool parking space without being a carpool vehicle.',
         'legal_G7_summary': 'The vehicle was parked on the footpath/pedestrian area, blocking pedestrian access.',
+        'legal_R396I_summary': 'The vehicle was stopped alongside a yellow continuous line without a valid exemption.',
+        'legal_YELLOW_LINE_summary': 'The vehicle was stopped alongside a yellow continuous line without a valid exemption.',
         'legal_default_summary': 'The vehicle was parked in violation of parking regulations.',
         'no_driver_present': 'No driver was present in or around the vehicle.',
         'violation_code': 'Violation',
@@ -336,12 +386,24 @@ TRANSLATIONS = {
         'violation_E12': 'Parkeergelegenheid ten behoeve van overstappen',
         'violation_E13': 'Parkeergelegenheid ten behoeve van carpoolers',
         'violation_G7': 'Voetpad / Voetgangersgebied',
+        'violation_R396I': 'Gele doorgetrokken streep (stilstaan verboden)',
+        'violation_YELLOW_LINE': 'Gele doorgetrokken streep (stilstaan verboden)',
 
         # Legal phrases (Dutch)
-        'legal_E9_summary': 'Het voertuig stond geparkeerd op een parkeergelegenheid bestemd voor vergunninghouders zonder geldige vergunning.',
+        'legal_E1_summary': 'Het voertuig stond geparkeerd in een parkeerverbodzone aangeduid door bord E1 zonder geldige ontheffing.',
+        'legal_E2_summary': 'Het voertuig stond stil in een verbod-stil-te-staan zone aangeduid door bord E2 zonder geldige ontheffing.',
+        'legal_E4_summary': 'Het voertuig stond geparkeerd in strijd met de parkeervoorwaarden aangeduid door bord E4.',
+        'legal_E5_summary': 'Het voertuig stond geparkeerd op een taxistandplaats aangeduid door bord E5 terwijl het geen taxi betrof.',
         'legal_E6_summary': 'Het voertuig stond geparkeerd op een gehandicaptenparkeerplaats zonder geldige gehandicaptenparkeerkaart.',
         'legal_E7_summary': 'Het voertuig stond geparkeerd op een laad/los gelegenheid zonder actieve laad/los activiteiten.',
+        'legal_E8_summary': 'Het voertuig stond geparkeerd op een parkeerplaats bestemd voor specifieke voertuigen zonder tot die categorie te behoren.',
+        'legal_E9_summary': 'Het voertuig stond geparkeerd op een parkeergelegenheid bestemd voor vergunninghouders zonder geldige vergunning.',
+        'legal_E10_summary': 'Het voertuig stond geparkeerd in een parkeerschijf-zone zonder geldige parkeerschijf.',
+        'legal_E12_summary': 'Het voertuig stond geparkeerd op een Park and Ride voorziening in strijd met de voorwaarden.',
+        'legal_E13_summary': 'Het voertuig stond geparkeerd op een carpoolparkeerplaats zonder carpool voertuig te zijn.',
         'legal_G7_summary': 'Het voertuig stond geparkeerd op het voetpad/voetgangersgebied en blokkeerde de doorgang voor voetgangers.',
+        'legal_R396I_summary': 'Het voertuig stond stilstaan langs een gele doorgetrokken streep zonder geldige ontheffing.',
+        'legal_YELLOW_LINE_summary': 'Het voertuig stond stilstaan langs een gele doorgetrokken streep zonder geldige ontheffing.',
         'legal_default_summary': 'Het voertuig stond in overtreding geparkeerd.',
         'no_driver_present': 'Geen bestuurder was in of rondom het voertuig aanwezig.',
         'violation_code': 'Overtreding',
@@ -488,6 +550,48 @@ def is_pdf(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() == 'pdf'
 
 
+def _build_legal_references(violation_code: str) -> dict:
+    """
+    Build legal references dictionary for a violation code.
+
+    Uses the decision trees and violation registry to construct the
+    legal_references structure needed by the Legal Basis UI section.
+
+    Args:
+        violation_code: The violation code (e.g., 'E6', 'E9', 'YELLOW_LINE')
+
+    Returns:
+        Dictionary with violation_article, violation_article_url,
+        wegslepen_basis, wegslepen_url
+    """
+    if not violation_code:
+        return {}
+
+    # Try to get from decision trees first (most complete data)
+    decision_tree = LEGAL_DECISION_TREES.get(violation_code)
+    if decision_tree:
+        return {
+            'violation_article': decision_tree.get('violation_article', ''),
+            'violation_article_url': decision_tree.get('violation_article_url', ''),
+            'wegslepen_basis': decision_tree.get('wegslepen_basis', ''),
+            'wegslepen_url': decision_tree.get('wegslepen_url', ''),
+        }
+
+    # Fallback to violation registry
+    violation_info = VIOLATION_REGISTRY.get(violation_code)
+    if violation_info:
+        return {
+            'violation_article': violation_info.get('rvv_article', ''),
+            'violation_article_url': violation_info.get('rvv_article_url', ''),
+            'wegslepen_basis': violation_info.get('wegslepen_basis', ''),
+            'wegslepen_url': violation_info.get('wegslepen_url', ''),
+        }
+
+    # Return empty dict if not found
+    logger.warning(f"No legal references found for violation code: {violation_code}")
+    return {}
+
+
 def extract_pdf_text(pdf_path):
     """Extract all text from PDF for field extraction."""
     doc = fitz.open(pdf_path)
@@ -513,9 +617,23 @@ def extract_structured_fields(text, lang='en'):
     not_available = t['not_available']
 
     # Extract case identifiers
+    volgnummer = find_field(r"volgnummer[:\s]*([A-Z0-9\-]+)", text)
+    bonnummer = find_field(r"bonnummer[:\s]*([A-Z0-9\-]+)", text)
+    brondocument = find_field(r"brondocument[:\s]*(\d+)", text)
+
+    # Debug logging for case extraction
+    logger.info(f"Case extraction - Text length: {len(text)}, volgnummer: {volgnummer}, bonnummer: {bonnummer}, brondocument: {brondocument}")
+
+    # Use brondocument as fallback for case ID when volgnummer/bonnummer are redacted
+    case_id = volgnummer or bonnummer or brondocument or not_available
+
     case = {
-        "volgnummer": find_field(r"volgnummer[:\s]*([A-Z0-9\-]+)", text) or not_available,
-        "bonnummer": find_field(r"bonnummer[:\s]*([A-Z0-9\-]+)", text) or not_available,
+        # CRITICAL: volgnummer field uses fallback chain for UI display
+        # Priority: volgnummer → bonnummer → brondocument → not_available
+        "volgnummer": volgnummer or bonnummer or brondocument or not_available,
+        "bonnummer": bonnummer or not_available,
+        "brondocument": brondocument or not_available,
+        "case_id": case_id,  # Best available case identifier
         "status": find_field(r"status[:\s]*(\w+)", text) or "Wegsleepwaardig",
         "datum_tijd": find_field(r"datum[/\s]tijd[:\s]*([0-9\-\s:]+)", text) or not_available,
         "medewerker": find_field(r"medewerker[:\s]*([A-Za-z\s\.]+)", text) or not_available,
@@ -535,9 +653,33 @@ def extract_structured_fields(text, lang='en'):
         "locatie_nr": find_field(r"(?:locatie\s*nr|huisnummer)[:\s]*(\d+)", text) or "",
     }
 
-    # Extract violation info - look for E-codes (parking signs)
-    violation_code_match = re.search(r"\b(E[1-9]|E1[0-3]|G[1-9])\b", text)
-    violation_code = violation_code_match.group(1) if violation_code_match else None
+    # Extract violation info - look for E-codes, G-codes, and R-codes (parking signs and road markings)
+    # E-codes: E1-E13 (parking signs)
+    # G-codes: G1-G9 (pedestrian areas)
+    # R-codes: R396i, R397i, R402c, etc. (road marking and parking violations)
+    violation_code_match = re.search(r"\b(E[1-9]|E1[0-3]|G[1-9]|R\d{3}[a-z]?)\b", text, re.IGNORECASE)
+    violation_code = violation_code_match.group(1).upper() if violation_code_match else None
+    original_r_code = violation_code  # Store original R-code for reference
+
+    # NEW: Use direct R-code to E-code mapping (replaces fragile "bord X" text search)
+    # This ensures R402c -> E6, R397i -> E9, etc. work reliably
+    if violation_code and violation_code.startswith('R'):
+        mapped_violation = get_violation_from_r_code(violation_code)
+        if mapped_violation:
+            # Successfully mapped R-code to violation type
+            # original_r_code is preserved above for reference
+            violation_code = mapped_violation
+            logger.info(f"Mapped R-code {original_r_code} to violation type {violation_code}")
+        else:
+            # R-code not in our registry - log warning but keep the R-code
+            logger.warning(f"Unknown R-code: {original_r_code} - no mapping found")
+
+    # Fallback: If no violation code found, check for yellow line keywords
+    if not violation_code:
+        yellow_line_pattern = re.search(r"gele\s+doorgetrokken\s+streep", text, re.IGNORECASE)
+        if yellow_line_pattern:
+            violation_code = 'YELLOW_LINE'
+            original_r_code = 'R396I'
 
     # Get violation description in selected language (prioritize translation over extracted text)
     violation_desc_key = f'violation_{violation_code}' if violation_code else None
@@ -694,51 +836,119 @@ def generate_report_sections(doc_summary, images, lang='en', sam3_results=None):
         image_desc = t['images_show_parked']
 
     # Object detection content - use MLLM or SAM3 results if available
+    is_parallel_mode = sam3_results and sam3_results.get('parallel_mode')
+    merged_results = sam3_results.get('merged_results', {}) if is_parallel_mode else {}
+
     if is_mllm_mode and sam3_results.get('analysis'):
         # Use MLLM analysis for object detection section
         analysis = sam3_results.get('analysis', {})
         obj_det = analysis.get('object_detection', {})
 
         lines = []
-        lines.append(t['detected_objects_mllm'])
+        # Different header for parallel mode
+        if is_parallel_mode:
+            header = "Cross-validated detection (SAM3 + OpenAI):" if lang == 'en' else "Kruisgevalideerde detectie (SAM3 + OpenAI):"
+            lines.append(header)
+        else:
+            lines.append(t['detected_objects_mllm'])
         lines.append("")
+
+        # Helper to get merged confidence or fallback to OpenAI
+        def get_confidence(category, openai_conf):
+            if is_parallel_mode and category in merged_results:
+                return int(merged_results[category].get('merged', openai_conf) * 100)
+            return int(openai_conf * 100)
+
+        # Helper to format confidence with SAM3/OpenAI breakdown
+        def format_conf_detail(category):
+            if is_parallel_mode and category in merged_results:
+                m = merged_results[category]
+                sam3_pct = int(m.get('sam3', 0) * 100)
+                openai_pct = int(m.get('openai', 0) * 100)
+                return f"  [SAM3: {sam3_pct}% | OpenAI: {openai_pct}%]"
+            return None
 
         # Vehicle
         if obj_det.get('vehicle', {}).get('detected'):
-            conf = int(obj_det['vehicle'].get('confidence', 0) * 100)
+            openai_conf = obj_det['vehicle'].get('confidence', 0)
+            conf = get_confidence('vehicle', openai_conf)
             details = obj_det['vehicle'].get('details', '')
             lines.append(f"• {t['vehicle']}: {t['detected']} ({t['confidence']}: {conf}%)")
+            conf_detail = format_conf_detail('vehicle')
+            if conf_detail:
+                lines.append(conf_detail)
             if details:
                 lines.append(f"  {details}")
 
         # License plate
         if obj_det.get('license_plate', {}).get('detected'):
-            conf = int(obj_det['license_plate'].get('confidence', 0) * 100)
+            openai_conf = obj_det['license_plate'].get('confidence', 0)
+            conf = get_confidence('license_plate', openai_conf)
             value = obj_det['license_plate'].get('value', '')
             lines.append(f"• {t['license_plate']}: {t['detected']} ({t['confidence']}: {conf}%)")
+            conf_detail = format_conf_detail('license_plate')
+            if conf_detail:
+                lines.append(conf_detail)
             if value:
                 extracted_label = "Extracted" if lang == 'en' else "Geëxtraheerd"
                 lines.append(f"  {extracted_label}: {value}")
 
-        # Traffic sign
+        # Traffic sign - check for specific sign types first
+        sign_category = 'traffic_sign'
+        for sign_code in ['traffic_sign_e9', 'traffic_sign_e6', 'traffic_sign_e7', 'traffic_sign_g7']:
+            if sign_code in merged_results:
+                sign_category = sign_code
+                break
+
         if obj_det.get('traffic_sign', {}).get('detected'):
-            conf = int(obj_det['traffic_sign'].get('confidence', 0) * 100)
+            openai_conf = obj_det['traffic_sign'].get('confidence', 0)
+            conf = get_confidence(sign_category, openai_conf)
             sign_type = obj_det['traffic_sign'].get('sign_type', '')
             sign_label = f"{t['sign']} {sign_type}" if sign_type else t.get('traffic_sign', 'Traffic Sign')
             lines.append(f"• {sign_label}: {t['detected']} ({t['confidence']}: {conf}%)")
+            conf_detail = format_conf_detail(sign_category)
+            if conf_detail:
+                lines.append(conf_detail)
 
-        # Parking permit
+        # Parking permit - ABSENCE BASED (not finding = good)
+        permit_in_merged = 'parking_permit' in merged_results
         if obj_det.get('parking_permit', {}).get('detected'):
-            conf = int(obj_det['parking_permit'].get('confidence', 0) * 100)
+            openai_conf = obj_det['parking_permit'].get('confidence', 0)
+            conf = get_confidence('parking_permit', openai_conf)
             lines.append(f"• {t['parking_permit']}: {t['detected']} ({t['confidence']}: {conf}%)")
-        elif obj_det.get('parking_permit'):
-            lines.append(f"• {t['parking_permit']}: {t['not_detected']}")
+            conf_detail = format_conf_detail('parking_permit')
+            if conf_detail:
+                lines.append(conf_detail)
+        elif obj_det.get('parking_permit') or permit_in_merged:
+            # Show absence confirmation for parallel mode
+            if is_parallel_mode and permit_in_merged:
+                m = merged_results['parking_permit']
+                sam3_pct = int(m.get('sam3', 0) * 100)
+                absence_conf = 100 - sam3_pct  # Invert for absence
+                lines.append(f"• {t['parking_permit']}: {t['not_detected']} (Absence: {absence_conf}%)")
+                lines.append(f"  [SAM3: {sam3_pct}% | OpenAI: {int(m.get('openai', 0) * 100)}%]")
+            else:
+                lines.append(f"• {t['parking_permit']}: {t['not_detected']}")
 
-        # Driver presence
+        # Driver presence - ABSENCE BASED (not finding = good for parking)
+        person_in_merged = 'person' in merged_results or 'driver_present' in merged_results
+        driver_category = 'person' if 'person' in merged_results else 'driver_present'
+
         if obj_det.get('driver_present', {}).get('detected'):
             lines.append(f"• {t['driver']}: {t['present']}")
-        elif obj_det.get('driver_present'):
-            lines.append(f"• {t['driver']}: {t['not_present']}")
+            conf_detail = format_conf_detail(driver_category)
+            if conf_detail:
+                lines.append(conf_detail)
+        elif obj_det.get('driver_present') or person_in_merged:
+            # Show absence confirmation for parallel mode
+            if is_parallel_mode and person_in_merged:
+                m = merged_results.get(driver_category, {})
+                sam3_pct = int(m.get('sam3', 0) * 100)
+                absence_conf = 100 - sam3_pct  # Invert for absence
+                lines.append(f"• {t['driver']}: {t['not_present']} (Absence: {absence_conf}%)")
+                lines.append(f"  [SAM3: {sam3_pct}% | OpenAI: {int(m.get('openai', 0) * 100)}%]")
+            else:
+                lines.append(f"• {t['driver']}: {t['not_present']}")
 
         obj_detect = "\n".join(lines)
     elif sam3_results and sam3_results.get('aggregate'):
@@ -787,10 +997,24 @@ def generate_report_sections(doc_summary, images, lang='en', sam3_results=None):
 
     # Original Dutch legal phrases (these are direct quotes from legal templates)
     dutch_legal_templates = {
-        "E9": [
-            "Ik zag dat het voertuig geparkeerd stond op een parkeergelegenheid bestemd voor vergunninghouders.",
-            "Ik zag geen geldige vergunning zichtbaar aanwezig in of aan het voertuig.",
-            "Ik zag geen laad/los activiteiten plaatsvinden.",
+        "E1": [
+            "Ik zag dat het voertuig geparkeerd stond in een zone waar een parkeerverbod gold, aangeduid door bord E1.",
+            "Ik zag geen geldige ontheffing zichtbaar aanwezig in of aan het voertuig.",
+            "Geen bestuurder was in of rondom het voertuig aanwezig.",
+        ],
+        "E2": [
+            "Ik zag dat het voertuig stilstond in een zone waar een verbod stil te staan gold, aangeduid door bord E2.",
+            "Ik zag geen geldige ontheffing zichtbaar aanwezig in of aan het voertuig.",
+            "Geen bestuurder was in of rondom het voertuig aanwezig.",
+        ],
+        "E4": [
+            "Ik zag dat het voertuig geparkeerd stond op een parkeergelegenheid aangeduid door bord E4.",
+            "Het voertuig voldeed niet aan de op het onderbord aangegeven voorwaarden.",
+            "Geen bestuurder was in of rondom het voertuig aanwezig.",
+        ],
+        "E5": [
+            "Ik zag dat het voertuig geparkeerd stond op een taxistandplaats, aangeduid door bord E5.",
+            "Het voertuig betrof geen taxi.",
             "Geen bestuurder was in of rondom het voertuig aanwezig.",
         ],
         "E6": [
@@ -803,9 +1027,37 @@ def generate_report_sections(doc_summary, images, lang='en', sam3_results=None):
             "Ik zag geen laad/los activiteiten plaatsvinden.",
             "Geen bestuurder was in of rondom het voertuig aanwezig.",
         ],
+        "E8": [
+            "Ik zag dat het voertuig geparkeerd stond op een parkeergelegenheid bestemd voor specifieke voertuigen, aangeduid door bord E8.",
+            "Het voertuig behoorde niet tot de op het onderbord aangegeven voertuigcategorie.",
+            "Geen bestuurder was in of rondom het voertuig aanwezig.",
+        ],
+        "E9": [
+            "Ik zag dat het voertuig geparkeerd stond op een parkeergelegenheid bestemd voor vergunninghouders.",
+            "Ik zag geen geldige vergunning zichtbaar aanwezig in of aan het voertuig.",
+            "Ik zag geen laad/los activiteiten plaatsvinden.",
+            "Geen bestuurder was in of rondom het voertuig aanwezig.",
+        ],
+        "E10": [
+            "Ik zag dat het voertuig geparkeerd stond in een parkeerschijf-zone, aangeduid door bord E10.",
+            "Ik zag geen geldige parkeerschijf zichtbaar aanwezig in het voertuig.",
+            "Geen bestuurder was in of rondom het voertuig aanwezig.",
+        ],
         "G7": [
             "Ik zag dat het voertuig geparkeerd stond op het voetpad/voetgangersgebied.",
             "Het voertuig blokkeerde de doorgang voor voetgangers.",
+        ],
+        "R396I": [
+            "Het betrof een gele doorgetrokken streep.",
+            "Ik zag dat het voertuig stilstond langs een gele doorgetrokken streep.",
+            "Ik zag geen ontheffing zichtbaar aanwezig in het voertuig.",
+            "Geen bestuurder was in of rondom het voertuig aanwezig.",
+        ],
+        "YELLOW_LINE": [
+            "Het betrof een gele doorgetrokken streep.",
+            "Ik zag dat het voertuig stilstond langs een gele doorgetrokken streep.",
+            "Ik zag geen ontheffing zichtbaar aanwezig in het voertuig.",
+            "Geen bestuurder was in of rondom het voertuig aanwezig.",
         ],
     }
 
@@ -1163,9 +1415,9 @@ def predict():
     if lang not in ['en', 'nl']:
         lang = 'en'
 
-    # Get model type from form (sam, mllm, openai, or mock)
+    # Get model type from form (sam, mllm, openai, openai_sam, or mock)
     model_type = request.form.get('model', 'mllm')
-    if model_type not in ['sam', 'mllm', 'openai', 'mock']:
+    if model_type not in ['sam', 'mllm', 'openai', 'openai_sam', 'mock']:
         model_type = 'mllm'
 
     t = get_translations(lang)
@@ -1229,7 +1481,7 @@ def predict():
             sam3_results = analyze_evidence_images(
                 image_paths,
                 output_dir=app.config['DERIVED_FOLDER'],
-                mock_mode=True  # Use mock mode for development
+                mock_mode=SAM_MOCK_MODE  # Configured via SAM_MOCK_MODE env var
             )
 
             # Get detected items for the first image (default selection)
@@ -1339,6 +1591,288 @@ def predict():
         except Exception as e:
             logger.error(f"OpenAI MLLM analysis failed: {str(e)}")
             # Continue without MLLM results
+    elif model_type == 'openai_sam' and extracted_images:
+        # ═══════════════════════════════════════════════════════════════════
+        # PARALLEL PROCESSING: SAM3 + OpenAI Vision
+        # ═══════════════════════════════════════════════════════════════════
+        logger.info("OpenAI+SAM parallel mode activated")
+
+        try:
+            image_paths = [
+                os.path.join(app.config['DATA_FOLDER'], img)
+                for img in extracted_images
+            ]
+
+            # Get context for analysis
+            officer_observation = doc_summary.get('officer_observation', '')
+            violation_code = doc_summary.get('violation', {}).get('code', 'unknown')
+            vehicle_info = {
+                'kenteken': doc_summary.get('vehicle', {}).get('kenteken'),
+                'merk': doc_summary.get('vehicle', {}).get('merk'),
+                'model': doc_summary.get('vehicle', {}).get('model'),
+                'kleur': doc_summary.get('vehicle', {}).get('kleur')
+            }
+            location_info = {
+                'straat': doc_summary.get('location', {}).get('straat'),
+                'stadsdeel': doc_summary.get('location', {}).get('stadsdeel'),
+                'buurt': doc_summary.get('location', {}).get('buurt')
+            }
+
+            sam3_confidences = {}
+            openai_confidences = {}
+            openai_result = None
+
+            # Run SAM3 and OpenAI in PARALLEL
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                futures = {}
+
+                # Submit SAM3 task (uses GroundingDINO + SAM pipeline)
+                futures['sam3'] = executor.submit(
+                    run_sam3_analysis,
+                    image_paths,
+                    SAM_MOCK_MODE  # Configured via SAM_MOCK_MODE env var
+                )
+
+                # Submit OpenAI task
+                futures['openai'] = executor.submit(
+                    analyze_parking_evidence_openai,
+                    image_paths,
+                    doc_summary,
+                    lang,
+                    10  # max_images
+                )
+
+                # Collect results with timeout handling
+                for name, future in futures.items():
+                    try:
+                        if name == 'sam3':
+                            sam3_confidences = future.result(timeout=60)
+                            logger.info(f"SAM3 analysis completed: {len(sam3_confidences)} categories")
+                        elif name == 'openai':
+                            openai_result = future.result(timeout=30)
+                            logger.info(f"OpenAI analysis completed")
+                    except Exception as e:
+                        logger.error(f"Error in {name} pipeline: {e}")
+
+            # Extract OpenAI confidences from result
+            if openai_result and openai_result.get('mllm_analysis'):
+                analysis = openai_result.get('mllm_analysis', {})
+                obj_det = analysis.get('object_detection', {})
+
+                # Map OpenAI detections to confidence scores
+                # IMPORTANT: OpenAI's confidence represents certainty in the detected state
+                # - detected: true, confidence: 0.9 = "90% sure item IS present"
+                # - detected: false, confidence: 0.9 = "90% sure item is NOT present"
+                # We need to convert this to "presence confidence" for the merger
+                for key, det in obj_det.items():
+                    if isinstance(det, dict):
+                        is_detected = det.get('detected', False)
+                        conf = det.get('confidence', 0.5)
+
+                        if is_detected:
+                            # Item detected - confidence is presence confidence
+                            openai_confidences[key] = conf
+                        else:
+                            # Item NOT detected - confidence is about absence
+                            # BUT: if confidence is very low (< 0.3), it likely means "no data"
+                            # not "I'm sure it's present"
+                            if conf >= 0.5:
+                                # High confidence about absence → low presence
+                                # 90% sure NOT present = 10% presence
+                                openai_confidences[key] = 1.0 - conf
+                            else:
+                                # Low/zero confidence = no meaningful data
+                                # Treat as "not found" = low presence confidence
+                                openai_confidences[key] = conf  # Keep it low
+
+                # Map traffic sign specifically
+                if 'traffic_sign' in obj_det:
+                    sign_det = obj_det['traffic_sign']
+                    if sign_det.get('detected', False):
+                        sign_type = sign_det.get('sign_type', '').upper()
+                        if 'E6' in sign_type:
+                            openai_confidences['traffic_sign_e6'] = sign_det.get('confidence', 0.5)
+                        elif 'E7' in sign_type:
+                            openai_confidences['traffic_sign_e7'] = sign_det.get('confidence', 0.5)
+                        elif 'E9' in sign_type:
+                            openai_confidences['traffic_sign_e9'] = sign_det.get('confidence', 0.5)
+                        elif 'G7' in sign_type:
+                            openai_confidences['traffic_sign_g7'] = sign_det.get('confidence', 0.5)
+
+            # Merge confidence scores using cross-validation
+            merged_results, merged_confidence_scores, hallucination_warnings, merged_ui_items = merge_confidences(
+                sam3_confidences,
+                openai_confidences
+            )
+
+            # Filter items for display (remove zero-detection items)
+            filtered_items, not_detected_labels = prepare_detected_items_for_display(
+                merged_ui_items,
+                include_zero_detection=False
+            )
+
+            # Get violation type - prefer MLLM-detected sign over document text extraction
+            # This fixes the issue where PDFs with images-only (no text layer) would default to E9
+            mllm_detected_sign = None
+
+            # CRITICAL: Check road_markings FIRST for yellow line detection
+            # Yellow lines are road markings, NOT traffic signs - must check separately
+            if openai_result and openai_result.get('mllm_analysis', {}).get('object_detection', {}).get('road_markings'):
+                road_markings = openai_result['mllm_analysis']['object_detection']['road_markings']
+                if road_markings.get('yellow_line', False) and road_markings.get('yellow_line_type') == 'continuous':
+                    mllm_detected_sign = 'YELLOW_LINE'
+                    logger.info(f"MLLM detected YELLOW_LINE from road_markings: type={road_markings.get('yellow_line_type')}")
+
+            # Then check traffic_sign (for E1-E13, G7 violations)
+            if not mllm_detected_sign and openai_result and openai_result.get('mllm_analysis', {}).get('object_detection', {}).get('traffic_sign'):
+                sign_info = openai_result['mllm_analysis']['object_detection']['traffic_sign']
+                if sign_info.get('detected', False):
+                    mllm_detected_sign = sign_info.get('sign_type', '').upper()
+                    # Normalize sign code (remove 'SIGN_' prefix if present, handle variations)
+                    if mllm_detected_sign:
+                        mllm_detected_sign = mllm_detected_sign.replace('SIGN_', '').replace('_', '').strip()
+                        # Map common variations
+                        if 'E6' in mllm_detected_sign or 'DISABLED' in mllm_detected_sign:
+                            mllm_detected_sign = 'E6'
+                        elif 'E9' in mllm_detected_sign or 'PERMIT' in mllm_detected_sign:
+                            mllm_detected_sign = 'E9'
+                        elif 'E7' in mllm_detected_sign or 'LOADING' in mllm_detected_sign:
+                            mllm_detected_sign = 'E7'
+                        elif 'G7' in mllm_detected_sign or 'PEDESTRIAN' in mllm_detected_sign:
+                            mllm_detected_sign = 'G7'
+                        elif 'E1' in mllm_detected_sign:
+                            mllm_detected_sign = 'E1'
+                        elif 'E2' in mllm_detected_sign:
+                            mllm_detected_sign = 'E2'
+                        elif 'E4' in mllm_detected_sign and 'ELECTRIC' in mllm_detected_sign:
+                            mllm_detected_sign = 'E4_ELECTRIC'
+                        elif 'E4' in mllm_detected_sign:
+                            mllm_detected_sign = 'E4'
+                        elif 'E5' in mllm_detected_sign or 'TAXI' in mllm_detected_sign:
+                            mllm_detected_sign = 'E5'
+                        elif 'YELLOW' in mllm_detected_sign or 'R396' in mllm_detected_sign:
+                            mllm_detected_sign = 'YELLOW_LINE'
+                        logger.info(f"MLLM detected sign type: {mllm_detected_sign}")
+
+            # Get violation type from document summary (fallback)
+            doc_violation_code = doc_summary.get('violation', {}).get('code', '')
+            if doc_violation_code and doc_violation_code.lower() in ['not specified', 'not available', 'niet gespecificeerd', 'niet beschikbaar']:
+                doc_violation_code = None
+
+            # Use MLLM detection if available, otherwise fall back to document extraction
+            violation_code = mllm_detected_sign or doc_violation_code or 'E9'
+            if violation_code and not any(c.isalpha() for c in str(violation_code)):
+                violation_code = 'E9'  # Default if only numbers
+
+            logger.info(f"Final violation code: {violation_code} (MLLM: {mllm_detected_sign}, Doc: {doc_violation_code})")
+
+            # CRITICAL: Update doc_summary with MLLM-detected violation code
+            # This ensures the UI header shows the correct violation code instead of "Not specified"
+            if violation_code and violation_code not in ['Not specified', 'Niet gespecificeerd']:
+                doc_summary['violation']['code'] = violation_code
+                doc_summary['violation']['sign'] = violation_code
+                # Also update description if we have a translation for this code
+                violation_desc_key = f'violation_{violation_code}'
+                if violation_desc_key in t:
+                    doc_summary['violation']['description'] = t[violation_desc_key]
+                logger.info(f"Updated doc_summary.violation.code to: {violation_code}")
+
+            # CRITICAL: Generate legal statement with the CORRECT violation code
+            # The OpenAI service may have used "Not specified" - we regenerate with actual code
+            generated_legal_statement = generate_legal_statement(
+                violation_code=violation_code,
+                context={
+                    "observation_time": "5",  # Default observation time
+                    "sub_sign_text": "",  # Can be extracted from MLLM analysis if available
+                },
+                language=lang,
+                include_conclusion=True
+            )
+            logger.info(f"Generated legal statement for violation {violation_code}")
+
+            # Generate Evidence Checklist from detection results
+            # This connects Detected Items panel to Evidence Checklist
+            generated_evidence_checklist = generate_evidence_checklist(
+                merged_ui_items,  # Use full list for checklist generation
+                violation_code,
+                lang
+            )
+            logger.info(f"Evidence Checklist generated: items={len(generated_evidence_checklist.get('items', []))}, violation={violation_code}, merged_ui_items={len(merged_ui_items)}")
+
+            # Format detected items for UI with dual bars
+            detected_items_ui = {
+                'items': filtered_items,
+                'all_items': merged_ui_items,  # Keep full list for reference
+                'not_detected_labels': not_detected_labels,
+                'hallucination_warnings': hallucination_warnings,
+                'parallel_mode': True
+            }
+
+            # Build sam3_results structure
+            sam3_results = {
+                'mllm_mode': True,
+                'openai_sam_mode': True,  # Flag for parallel mode
+                'parallel_mode': True,
+                'analysis': openai_result.get('mllm_analysis') if openai_result else None,
+                'summary': openai_result.get('summary') if openai_result else None,
+                # Override verification with our calculated values
+                'verification': {
+                    **(openai_result.get('verification') or {}),
+                    # Use our calculated verification percentage
+                    'overall_confidence': generated_evidence_checklist['verified_percentage'] / 100.0 if generated_evidence_checklist else 0.0,
+                    # observation_supported based on whether majority of checks passed
+                    'observation_supported': generated_evidence_checklist['verified_percentage'] >= 60 if generated_evidence_checklist else False,
+                } if openai_result else None,
+                'image_description': openai_result.get('image_description') if openai_result else None,
+                'environmental_context': openai_result.get('environmental_context') if openai_result else None,
+                'metadata': openai_result.get('metadata') if openai_result else {},
+                'pipeline_version': '2.0-parallel',
+                # Override legal_assessment with our calculated verification score
+                # IMPORTANT: Always provide legal_assessment dict so Evidence Checklist section shows
+                'legal_assessment': {
+                    **((openai_result.get('legal_assessment') or {}) if openai_result else {}),
+                    # Use our calculated verification percentage from evidence checklist
+                    'verification_score': generated_evidence_checklist['verified_percentage'] / 100.0 if generated_evidence_checklist else 0.0,
+                    'confirmed_count': generated_evidence_checklist['confirmed_count'] if generated_evidence_checklist else 0,
+                    'total_count': generated_evidence_checklist['total_count'] if generated_evidence_checklist else 0,
+                    # Store the actual violation code (from MLLM detection or document)
+                    'violation_code': violation_code,
+                    'feit_code': get_legal_reference(violation_code).get('feit_code') if get_legal_reference(violation_code) else None,
+                    # CRITICAL: Build legal_references from our decision trees
+                    # This ensures Legal Basis section is always populated when violation is detected
+                    'legal_references': _build_legal_references(violation_code),
+                },
+                # Use regenerated legal statement with CORRECT violation code (not OpenAI's "Not specified")
+                'legal_statement': generated_legal_statement,
+                # Use generated evidence checklist instead of OpenAI's
+                'evidence_checklist': generated_evidence_checklist['items'] if generated_evidence_checklist else [],
+                # Calculate recommendation based on Evidence Checklist status
+                # Logic: All passed → APPROVE, Any unverifiable → MANUAL REVIEW, Any failed → REJECT
+                'recommendation': determine_action({
+                    'evidence_checklist': generated_evidence_checklist,
+                    'overall_confidence': merged_confidence_scores.get('object_detection', 0.0),
+                    'verification_score': generated_evidence_checklist.get('verified_percentage', 0) / 100.0 if generated_evidence_checklist else 0.0
+                }),
+                'recommendation_ui': format_action_for_ui(determine_action({
+                    'evidence_checklist': generated_evidence_checklist,
+                    'overall_confidence': merged_confidence_scores.get('object_detection', 0.0),
+                    'verification_score': generated_evidence_checklist.get('verified_percentage', 0) / 100.0 if generated_evidence_checklist else 0.0
+                }), lang),
+                # Parallel-specific data
+                'sam3_confidences': sam3_confidences,
+                'openai_confidences': openai_confidences,
+                'merged_results': {k: {'merged': v.merged_confidence, 'sam3': v.sam3_confidence, 'openai': v.openai_confidence, 'is_hallucination': v.is_hallucination_risk} for k, v in merged_results.items()},
+                'hallucination_warnings': hallucination_warnings
+            }
+
+            # Store merged confidence scores for later use
+            parallel_confidence_scores = merged_confidence_scores
+
+            logger.info(f"OpenAI+SAM parallel analysis completed. Hallucination warnings: {len(hallucination_warnings)}")
+
+        except Exception as e:
+            logger.error(f"OpenAI+SAM parallel analysis failed: {str(e)}")
+            # Continue without results
     elif model_type == 'mock':
         # Mock mode - generate test data without API calls
         logger.info("Mock mode activated - generating test data")
@@ -1356,6 +1890,9 @@ def predict():
     if model_type == 'mock':
         # Mock mode - use pre-generated mock confidence scores
         confidence_scores = mock_confidence_scores
+    elif model_type == 'openai_sam' and sam3_results and sam3_results.get('openai_sam_mode'):
+        # OpenAI+SAM parallel mode - use merged confidence scores
+        confidence_scores = parallel_confidence_scores
     elif sam3_results and sam3_results.get('mllm_mode'):
         # MLLM mode - use confidence scores from Claude Vision analysis
         confidence_scores = mllm_ui_data.get('confidence_scores', {

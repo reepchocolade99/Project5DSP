@@ -32,12 +32,19 @@ Analyze the image(s) and report:
    🚨 IMPORTANT: If the sign shows "vergunninghouders" text WITHOUT a wheelchair symbol, it is E9, NOT E6!
    🚨 Only classify as E6 if you see an actual wheelchair icon (♿) on the sign!
 
-   Full identification guide:
+   Full identification guide (Dutch E-series parking signs):
+     * E1 = No Parking: Round blue sign with red border and single red diagonal stripe (parkeerverbod)
+     * E2 = No Stopping: Round blue sign with red X cross (stilstaan verboden)
+     * E3 = No Bicycle/Moped Parking: Blue sign with bicycle and red diagonal stripe
+     * E4 = Parking Facility: Blue rectangular "P" sign without permit text - may have conditions on sub-sign
+     * E5 = Taxi Stand: Blue rectangular sign with "TAXI" text
      * E6 = Disabled parking: MUST have WHITE WHEELCHAIR SYMBOL (♿)
      * E7 = Loading/unloading zone: Blue sign with truck/cargo symbol
+     * E8 = Designated Vehicles: Blue "P" sign with specific vehicle type on sub-sign
      * E9 = Permit holders parking: Blue "P" sign with text "vergunninghouders" (NO wheelchair!)
+     * E10 = Parking Disc Zone: Blue rectangular sign with parking disc symbol
      * G7 = Pedestrian area/footpath: Blue sign with pedestrian symbol
-     * E4 = Parking facility: Blue "P" sign without permit text
+     * E4_ELECTRIC = EV Charging: Blue "P" sign with electric plug/charging symbol
    - Is a sub-sign present? If so, what does it say?
    - Approximate distance from vehicle to sign
 
@@ -47,13 +54,20 @@ Analyze the image(s) and report:
    - Permit/exemption document: YES / NO / NOT VISIBLE
    - Parking disc: YES / NO / NOT VISIBLE
 
-4. ENVIRONMENT OBSERVATION:
+4. ROAD MARKINGS OBSERVATION:
+   - Yellow continuous line (gele doorgetrokken streep): YES / NO
+   - Yellow dashed line: YES / NO
+   - White parking lines: YES / NO
+   - Other road markings: describe if present
+   - Is vehicle parked alongside/touching yellow line: YES / NO
+
+5. ENVIRONMENT OBSERVATION:
    - Driver present in or near vehicle: YES / NO
    - Loading/unloading activity visible: YES / NO
    - Other people near vehicle: YES / NO
    - Is vehicle connected to charging point (if applicable): YES / NO / NOT APPLICABLE
 
-5. IMAGE QUALITY:
+6. IMAGE QUALITY:
    - Lighting conditions: day / night / artificial
    - Image quality: good / moderate / poor
    - License plate readability: full / partial / none
@@ -72,7 +86,7 @@ OUTPUT FORMAT: JSON (valid JSON only, no markdown code blocks)
   },
   "traffic_sign": {
     "detected": true | false,
-    "sign_code": "E6 | E7 | E9 | G7 | E4 | E4_ELECTRIC | other | none",
+    "sign_code": "E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9 | E10 | G7 | E4_ELECTRIC | other | none",
     "sub_sign_text": "string or null",
     "distance_estimate": "string (e.g., 'approximately 2 meters')",
     "confidence": 0.0-1.0
@@ -82,6 +96,13 @@ OUTPUT FORMAT: JSON (valid JSON only, no markdown code blocks)
     "permit": "yes | no | not_visible",
     "parking_disc": "yes | no | not_visible",
     "other_items": "string or null"
+  },
+  "road_markings": {
+    "yellow_line": true | false,
+    "yellow_line_type": "continuous | dashed | none",
+    "vehicle_alongside_yellow": true | false,
+    "white_parking_lines": true | false,
+    "other_markings": "string or null"
   },
   "environment": {
     "driver_present": true | false,
@@ -142,12 +163,19 @@ Analyseer de afbeelding(en) en rapporteer:
    🚨 BELANGRIJK: Als het bord "vergunninghouders" tekst toont ZONDER rolstoel symbool, is het E9, NIET E6!
    🚨 Classificeer alleen als E6 als je een daadwerkelijk rolstoel icoon (♿) op het bord ziet!
 
-   Volledige identificatiegids:
+   Volledige identificatiegids (Nederlandse E-serie parkeerborden):
+     * E1 = Parkeerverbod: Rond blauw bord met rode rand en enkele rode diagonale streep
+     * E2 = Stilstaan verboden: Rond blauw bord met rood X kruis
+     * E3 = Verbod fietsen/bromfietsen te plaatsen: Blauw bord met fiets en rode diagonale streep
+     * E4 = Parkeergelegenheid: Blauw rechthoekig "P" bord zonder vergunningtekst - kan voorwaarden op onderbord hebben
+     * E5 = Taxistandplaats: Blauw rechthoekig bord met "TAXI" tekst
      * E6 = Gehandicaptenparkeerplaats: MOET WIT ROLSTOEL SYMBOOL (♿) hebben
      * E7 = Laden/lossen zone: Blauw bord met vrachtwagen/lading symbool
+     * E8 = Aangegeven voertuigen: Blauw "P" bord met specifiek voertuigtype op onderbord
      * E9 = Vergunninghouders parkeren: Blauw "P" bord met tekst "vergunninghouders" (GEEN rolstoel!)
+     * E10 = Parkeerschijf-zone: Blauw rechthoekig bord met parkeerschijf symbool
      * G7 = Voetgangersgebied: Blauw bord met voetganger symbool
-     * E4 = Parkeergelegenheid: Blauw "P" bord zonder vergunningtekst
+     * E4_ELECTRIC = EV Oplaadpunt: Blauw "P" bord met elektrische stekker/oplaadsymbool
    - Is er een onderbord aanwezig? Zo ja, wat staat erop?
    - Geschatte afstand van voertuig tot bord
 
@@ -157,13 +185,20 @@ Analyseer de afbeelding(en) en rapporteer:
    - Vergunning/ontheffing document: JA / NEE / NIET ZICHTBAAR
    - Parkeerschijf: JA / NEE / NIET ZICHTBAAR
 
-4. OMGEVINGSOBSERVATIE:
+4. WEGMARKERING OBSERVATIE:
+   - Gele doorgetrokken streep: JA / NEE
+   - Gele onderbroken streep: JA / NEE
+   - Witte parkeerlijnen: JA / NEE
+   - Andere wegmarkeringen: beschrijf indien aanwezig
+   - Staat voertuig langs/op de gele streep: JA / NEE
+
+5. OMGEVINGSOBSERVATIE:
    - Bestuurder aanwezig in of nabij voertuig: JA / NEE
    - Laad/los activiteit zichtbaar: JA / NEE
    - Andere personen nabij voertuig: JA / NEE
    - Voertuig aangesloten op oplaadpunt (indien van toepassing): JA / NEE / NVT
 
-5. BEELDKWALITEIT:
+6. BEELDKWALITEIT:
    - Lichtomstandigheden: dag / nacht / kunstlicht
    - Beeldkwaliteit: goed / matig / slecht
    - Leesbaarheid kenteken: volledig / gedeeltelijk / geen
@@ -182,7 +217,7 @@ OUTPUT FORMAAT: JSON (alleen geldige JSON, geen markdown codeblokken)
   },
   "traffic_sign": {
     "detected": true | false,
-    "sign_code": "E6 | E7 | E9 | G7 | E4 | E4_ELECTRIC | other | none",
+    "sign_code": "E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9 | E10 | G7 | E4_ELECTRIC | other | none",
     "sub_sign_text": "string of null",
     "distance_estimate": "string (bijv. 'ongeveer 2 meter')",
     "confidence": 0.0-1.0
@@ -192,6 +227,13 @@ OUTPUT FORMAAT: JSON (alleen geldige JSON, geen markdown codeblokken)
     "permit": "yes | no | not_visible",
     "parking_disc": "yes | no | not_visible",
     "other_items": "string of null"
+  },
+  "road_markings": {
+    "yellow_line": true | false,
+    "yellow_line_type": "continuous | dashed | none",
+    "vehicle_alongside_yellow": true | false,
+    "white_parking_lines": true | false,
+    "other_markings": "string of null"
   },
   "environment": {
     "driver_present": true | false,
@@ -291,7 +333,7 @@ def build_layer2_message(
 # Expected output schema for validation
 LAYER2_OUTPUT_SCHEMA = {
     "type": "object",
-    "required": ["vehicle", "traffic_sign", "windshield_items", "environment", "observation_summary"],
+    "required": ["vehicle", "traffic_sign", "windshield_items", "road_markings", "environment", "observation_summary"],
     "properties": {
         "vehicle": {
             "type": "object",
@@ -330,6 +372,17 @@ LAYER2_OUTPUT_SCHEMA = {
                 "permit": {"type": "string", "enum": ["yes", "no", "not_visible"]},
                 "parking_disc": {"type": "string", "enum": ["yes", "no", "not_visible"]},
                 "other_items": {"type": ["string", "null"]}
+            }
+        },
+        "road_markings": {
+            "type": "object",
+            "required": ["yellow_line", "yellow_line_type", "vehicle_alongside_yellow"],
+            "properties": {
+                "yellow_line": {"type": "boolean"},
+                "yellow_line_type": {"type": "string", "enum": ["continuous", "dashed", "none"]},
+                "vehicle_alongside_yellow": {"type": "boolean"},
+                "white_parking_lines": {"type": "boolean"},
+                "other_markings": {"type": ["string", "null"]}
             }
         },
         "environment": {

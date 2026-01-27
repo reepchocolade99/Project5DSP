@@ -47,20 +47,18 @@ CONFIDENCE_WEIGHTS = {
 
 def determine_action(results: dict) -> dict:
     """
-    Determine the recommended action based on validation results.
+    Determine the recommended action based on Evidence Checklist results.
 
-    This function evaluates the combined results from MLLM analysis,
-    rule engine evaluation, and officer observation comparison to
-    recommend an action: approve, manual_review, or reject.
+    Simple, clear logic based on Evidence Checklist item statuses:
+    - APPROVED: All items are green checkmarks (passed)
+    - MANUAL REVIEW: At least one question mark (unverifiable/hallucination risk)
+    - REJECTED: At least one X mark (failed - neither LLM could verify)
 
     Args:
         results: Combined validation results dictionary containing:
-            - overall_confidence: float (0.0-1.0)
-            - observation_match_score: float (0.0-1.0)
-            - verification_score: float (0.0-1.0) from rule engine
-            - unverifiable_checks: list of check IDs
-            - discrepancies: list of discrepancy dicts with 'severity' key
-            - all_checks_passed: bool
+            - evidence_checklist: dict with 'items' list, each item has 'status'
+            - overall_confidence: float (0.0-1.0) for display
+            - verification_score: float (0.0-1.0) for display
 
     Returns:
         Action recommendation dictionary:
@@ -69,145 +67,113 @@ def determine_action(results: dict) -> dict:
             - requires_manual_review: bool
             - review_points: list of specific items needing review
             - confidence_level: "high" | "medium" | "low"
-
-    Example:
-        >>> results = {
-        ...     "overall_confidence": 0.92,
-        ...     "observation_match_score": 0.95,
-        ...     "verification_score": 0.88,
-        ...     "unverifiable_checks": [],
-        ...     "discrepancies": [],
-        ...     "all_checks_passed": True
-        ... }
-        >>> action = determine_action(results)
-        >>> action["action"]
-        'approve'
     """
-    # Extract values with defaults
+    # Extract Evidence Checklist
+    evidence_checklist = results.get("evidence_checklist", {})
+    checklist_items = evidence_checklist.get("items", [])
+
+    # Extract scores for display purposes
     confidence = results.get("overall_confidence", 0.0)
-    match_score = results.get("observation_match_score", 0.0)
     verification_score = results.get("verification_score", 0.0)
-    unverifiable = results.get("unverifiable_checks", [])
-    discrepancies = results.get("discrepancies", [])
-    all_checks_passed = results.get("all_checks_passed", False)
 
-    # Count discrepancies by severity
-    minor_discrepancies = sum(
-        1 for d in discrepancies
-        if d.get("severity") == "minor"
-    )
-    major_discrepancies = sum(
-        1 for d in discrepancies
-        if d.get("severity") == "major"
-    )
-    unverifiable_count = len(unverifiable) if isinstance(unverifiable, list) else 0
+    # Count statuses from Evidence Checklist
+    passed_count = 0
+    unverifiable_count = 0
+    failed_count = 0
 
-    thresholds = VALIDATION_THRESHOLDS
+    failed_items = []
+    unverifiable_items = []
 
-    # Check auto-reject first (lowest priority threshold)
-    reject_thresholds = thresholds["auto_reject"]
-    if (confidence < reject_thresholds["overall_confidence_below"] or
-        match_score < reject_thresholds["observation_match_score_below"] or
-        verification_score < reject_thresholds["min_verification_score_below"]):
+    for item in checklist_items:
+        status = item.get("status", "unverifiable")
+        description = item.get("description", "Unknown check")
 
-        reject_reasons = []
-        if confidence < reject_thresholds["overall_confidence_below"]:
-            reject_reasons.append(f"Overall confidence ({confidence:.0%}) below minimum ({reject_thresholds['overall_confidence_below']:.0%})")
-        if match_score < reject_thresholds["observation_match_score_below"]:
-            reject_reasons.append(f"Officer match score ({match_score:.0%}) below minimum ({reject_thresholds['observation_match_score_below']:.0%})")
-        if verification_score < reject_thresholds["min_verification_score_below"]:
-            reject_reasons.append(f"Verification score ({verification_score:.0%}) below minimum ({reject_thresholds['min_verification_score_below']:.0%})")
+        if status == "passed":
+            passed_count += 1
+        elif status == "unverifiable":
+            unverifiable_count += 1
+            unverifiable_items.append(description)
+        elif status == "failed":
+            failed_count += 1
+            failed_items.append(description)
 
+    total_count = len(checklist_items)
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # DECISION LOGIC (Priority Order)
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    # 1. REJECTED - At least one X mark (failed)
+    #    Both LLMs couldn't find required evidence
+    if failed_count > 0:
         return {
             "action": "reject",
-            "reason": "Confidence scores below minimum thresholds",
+            "reason": f"{failed_count} required evidence item(s) could not be verified",
             "requires_manual_review": True,
-            "review_points": reject_reasons,
+            "review_points": [f"Not detected: {item}" for item in failed_items],
             "confidence_level": "low",
             "scores": {
                 "overall_confidence": confidence,
-                "observation_match_score": match_score,
-                "verification_score": verification_score
+                "verification_score": verification_score,
+                "passed": passed_count,
+                "unverifiable": unverifiable_count,
+                "failed": failed_count,
+                "total": total_count
             }
         }
 
-    # Check auto-approve (highest priority threshold)
-    approve_thresholds = thresholds["auto_approve"]
-    can_auto_approve = (
-        confidence >= approve_thresholds["overall_confidence"] and
-        match_score >= approve_thresholds["observation_match_score"] and
-        verification_score >= approve_thresholds["min_verification_score"] and
-        unverifiable_count <= approve_thresholds["max_unverifiable_checks"] and
-        minor_discrepancies <= approve_thresholds["max_minor_discrepancies"] and
-        major_discrepancies <= approve_thresholds["max_major_discrepancies"] and
-        all_checks_passed
-    )
+    # 2. MANUAL REVIEW - At least one question mark (unverifiable/hallucination risk)
+    #    One LLM detected but the other didn't confirm
+    if unverifiable_count > 0:
+        return {
+            "action": "manual_review",
+            "reason": f"{unverifiable_count} item(s) require manual verification",
+            "requires_manual_review": True,
+            "review_points": [f"Needs verification: {item}" for item in unverifiable_items],
+            "confidence_level": "medium",
+            "scores": {
+                "overall_confidence": confidence,
+                "verification_score": verification_score,
+                "passed": passed_count,
+                "unverifiable": unverifiable_count,
+                "failed": failed_count,
+                "total": total_count
+            }
+        }
 
-    if can_auto_approve:
+    # 3. APPROVED - All items are green checkmarks (passed)
+    #    Both LLMs confirmed all required evidence
+    if passed_count == total_count and total_count > 0:
         return {
             "action": "approve",
-            "reason": "All validation criteria met",
+            "reason": "All evidence items verified by both detection systems",
             "requires_manual_review": False,
             "review_points": [],
             "confidence_level": "high",
             "scores": {
                 "overall_confidence": confidence,
-                "observation_match_score": match_score,
-                "verification_score": verification_score
+                "verification_score": verification_score,
+                "passed": passed_count,
+                "unverifiable": unverifiable_count,
+                "failed": failed_count,
+                "total": total_count
             }
         }
 
-    # Default to manual review
-    review_thresholds = thresholds["manual_review"]
-    review_points = []
-
-    # Identify specific review points
-    if unverifiable_count > 0:
-        review_points.append(
-            f"{unverifiable_count} check(s) could not be verified from images: {', '.join(unverifiable)}"
-        )
-
-    if major_discrepancies > 0:
-        review_points.append(
-            f"{major_discrepancies} major discrepancy(ies) between image and officer observation"
-        )
-
-    if minor_discrepancies > review_thresholds["max_minor_discrepancies"]:
-        review_points.append(
-            f"{minor_discrepancies} minor discrepancy(ies) noted (threshold: {review_thresholds['max_minor_discrepancies']})"
-        )
-
-    if not all_checks_passed:
-        review_points.append("Not all required legal checks passed")
-
-    if confidence < approve_thresholds["overall_confidence"]:
-        review_points.append(
-            f"Overall confidence ({confidence:.0%}) below auto-approve threshold ({approve_thresholds['overall_confidence']:.0%})"
-        )
-
-    if match_score < approve_thresholds["observation_match_score"]:
-        review_points.append(
-            f"Officer observation match ({match_score:.0%}) below auto-approve threshold ({approve_thresholds['observation_match_score']:.0%})"
-        )
-
-    # Determine confidence level
-    if confidence >= 0.80 and match_score >= 0.80:
-        confidence_level = "medium-high"
-    elif confidence >= 0.70 and match_score >= 0.70:
-        confidence_level = "medium"
-    else:
-        confidence_level = "medium-low"
-
+    # 4. Fallback - No checklist items (shouldn't happen, but handle gracefully)
     return {
         "action": "manual_review",
-        "reason": "Results require human verification",
+        "reason": "No evidence checklist available for evaluation",
         "requires_manual_review": True,
-        "review_points": review_points,
-        "confidence_level": confidence_level,
+        "review_points": ["Evidence checklist is empty or missing"],
+        "confidence_level": "low",
         "scores": {
             "overall_confidence": confidence,
-            "observation_match_score": match_score,
-            "verification_score": verification_score
+            "verification_score": verification_score,
+            "passed": 0,
+            "unverifiable": 0,
+            "failed": 0,
+            "total": 0
         }
     }
 
@@ -324,12 +290,12 @@ def format_action_for_ui(action_result: dict, language: str = "en") -> dict:
     # Action labels and styling
     action_config = {
         "approve": {
-            "label_en": "Approved",
-            "label_nl": "Goedgekeurd",
+            "label_en": "Evidence Verified",
+            "label_nl": "Bewijs Geverifieerd",
             "icon": "check-circle",
             "color": "success",
-            "description_en": "Case meets all validation criteria",
-            "description_nl": "Zaak voldoet aan alle validatiecriteria"
+            "description_en": "Evidence meets validation criteria - ready for officer review",
+            "description_nl": "Bewijs voldoet aan validatiecriteria - klaar voor beoordeling"
         },
         "manual_review": {
             "label_en": "Manual Review Required",

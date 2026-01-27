@@ -60,7 +60,7 @@
                     {% endif %}
                 </div>
 
-                {% if sam3_results and sam3_results.pipeline_version == '2.0' and sam3_results.legal_assessment %}
+                {% if sam3_results and (sam3_results.pipeline_version == '2.0' or sam3_results.pipeline_version == '2.0-parallel') and sam3_results.legal_assessment %}
                 <!-- ==================== LEGAL DECISION AREA (Moved to Main Content) ==================== -->
 
                 <!-- Legal Basis Card - Prominent Position -->
@@ -252,7 +252,7 @@
                 {% endif %}
 
                 <!-- Report Sections (AI-generated content) -->
-                <div class="sections-container {% if sam3_results and sam3_results.pipeline_version == '2.0' %}collapsible-sections{% endif %}">
+                <div class="sections-container {% if sam3_results and (sam3_results.pipeline_version == '2.0' or sam3_results.pipeline_version == '2.0-parallel') %}collapsible-sections{% endif %}">
                     {% for section in report_sections %}
                     {% if section.source != 'document' %}
                     <div class="report-section" data-section-id="{{ section.id }}">
@@ -334,124 +334,7 @@
                         </div>
                     </div>
 
-                    {% if model_type == 'sam' %}
-                    <!-- SAM3 Overlay Toggle -->
-                    {% if sam3_results %}
-                    <div class="overlay-toggle">
-                        <button class="btn btn-sm btn-outline" id="toggleOverlay" data-showing="false">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                                <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                                <polyline points="21 15 16 10 5 21"></polyline>
-                            </svg>
-                            <span id="overlayBtnText">{{ t.show_overlay }}</span>
-                        </button>
-                    </div>
-                    {% endif %}
-
-                    <!-- Detected Items (SAM3-driven) -->
-                    <div class="detected-items">
-                        <h5>{{ t.detected_items }}</h5>
-                        <ul class="detection-list" id="detectionList">
-                            {% if detected_items_ui and detected_items_ui['items'] %}
-                                {% for item in detected_items_ui['items'] %}
-                                <li class="{% if not item.detected %}not-detected{% endif %}">
-                                    <span class="detection-name">
-                                        {{ item.label }}
-                                        {% if item.crop_available %}
-                                        <a href="#" class="view-crop-link" data-crop="{{ item.label_key }}" title="{{ t.view_crop }}">
-                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                                                <polyline points="15 3 21 3 21 9"></polyline>
-                                                <line x1="10" y1="14" x2="21" y2="3"></line>
-                                            </svg>
-                                        </a>
-                                        {% endif %}
-                                    </span>
-                                    <span class="detection-conf {% if item.confidence >= 80 %}high{% elif item.confidence >= 50 %}medium{% else %}low{% endif %}">
-                                        {% if item.detected %}{{ item.confidence }}%{% else %}{{ t.not_detected }}{% endif %}
-                                    </span>
-                                </li>
-                                {% endfor %}
-                            {% else %}
-                                <!-- Fallback to document-based detection -->
-                                <li><span class="detection-name">{{ t.vehicle }}</span><span class="detection-conf">{{ (confidence_scores.object_detection * 100)|int }}%</span></li>
-                                {% if doc_summary.vehicle.kenteken and doc_summary.vehicle.kenteken != t.not_available %}
-                                <li><span class="detection-name">{{ t.license_plate }}</span><span class="detection-conf">{{ (confidence_scores.text_recognition * 100)|int }}%</span></li>
-                                {% endif %}
-                                {% if doc_summary.violation.code and doc_summary.violation.code != t.not_specified %}
-                                <li><span class="detection-name">{{ t.sign }} {{ doc_summary.violation.code }}</span><span class="detection-conf">{{ (confidence_scores.legal_reasoning * 100)|int }}%</span></li>
-                                {% endif %}
-                            {% endif %}
-                        </ul>
-                    </div>
-                    {% else %}
-                    <!-- MLLM Mode - Claude Vision Analysis -->
-                    <div class="detected-items mllm-results">
-                        <h5>{{ t.detected_items }} (MLLM)</h5>
-                        {% if detected_items_ui and detected_items_ui['items'] %}
-                        <ul class="detection-list" id="detectionList">
-                            {% for item in detected_items_ui['items'] %}
-                            <li class="{% if not item.detected %}not-detected{% endif %}">
-                                <span class="detection-name">
-                                    {{ item.label }}
-                                    {% if item.extracted_text %}
-                                    <small class="extracted-value">{{ item.extracted_text }}</small>
-                                    {% endif %}
-                                    {% if item.sign_code %}
-                                    <small class="extracted-value">{{ item.sign_code }}</small>
-                                    {% endif %}
-                                </span>
-                                <span class="detection-conf {% if item.confidence >= 80 %}high{% elif item.confidence >= 50 %}medium{% else %}low{% endif %}">
-                                    {% if item.detected %}{{ item.confidence }}%{% else %}{{ t.not_detected }}{% endif %}
-                                </span>
-                            </li>
-                            {% endfor %}
-                        </ul>
-                        {% else %}
-                        <div class="mllm-error">
-                            <p>{{ t.mllm_coming_soon }}</p>
-                        </div>
-                        {% endif %}
-                    </div>
-
-                    <!-- MLLM Verification Summary -->
-                    {% if sam3_results and sam3_results.mllm_mode and sam3_results.verification %}
-                    <div class="mllm-verification-box">
-                        <h5>{{ t.verification_status if t.verification_status else 'Verification' }}</h5>
-                        <div class="verification-indicator {% if sam3_results.verification.observation_supported %}verified{% else %}warning{% endif %}">
-                            {% if sam3_results.verification.observation_supported %}
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                            </svg>
-                            <span>{{ t.observation_supported if t.observation_supported else 'Evidence supports observation' }}</span>
-                            {% else %}
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <line x1="12" y1="8" x2="12" y2="12"></line>
-                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                            </svg>
-                            <span>{{ t.discrepancies_found if t.discrepancies_found else 'Discrepancies found' }}</span>
-                            {% endif %}
-                        </div>
-                        <div class="verification-confidence">
-                            <span>{{ t.confidence }}:</span>
-                            <strong>{{ (sam3_results.verification.overall_confidence * 100)|int }}%</strong>
-                        </div>
-                    </div>
-                    {% endif %}
-                    {% endif %}
-
-                    <!-- Extracted Text -->
-                    {% if doc_summary.vehicle.kenteken and doc_summary.vehicle.kenteken != t.not_available %}
-                    <div class="extracted-text-box">
-                        <h5>{{ t.extracted_text }}</h5>
-                        <div class="plate-display">{{ doc_summary.vehicle.kenteken }}</div>
-                    </div>
-                    {% endif %}
-
-                    <!-- Image Thumbnails -->
+                    <!-- Image Thumbnails - Moved here for better layout -->
                     <div class="thumbnail-strip">
                         {% for img in extracted_images %}
                         <div class="thumb {% if loop.first %}selected{% endif %}"
@@ -468,6 +351,413 @@
                         </div>
                         {% endfor %}
                     </div>
+
+                    <!-- Extracted Text - License Plate -->
+                    {% if doc_summary.vehicle.kenteken and doc_summary.vehicle.kenteken != t.not_available %}
+                    <div class="extracted-text-box">
+                        <h5>{{ t.extracted_text }}</h5>
+                        <div class="plate-display">{{ doc_summary.vehicle.kenteken }}</div>
+                    </div>
+                    {% endif %}
+
+                    <!-- ═══════════════════════════════════════════════════════════════════ -->
+                    <!-- UNIFIED OBJECT DETECTION ANALYSIS SECTION -->
+                    <!-- ═══════════════════════════════════════════════════════════════════ -->
+
+                    <!-- Object Detection Analysis Card - Unified for all model types -->
+                    <div class="object-detection-card">
+                        <div class="detection-card-header">
+                            <div class="detection-title">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                    <polyline points="21 15 16 10 5 21"></polyline>
+                                </svg>
+                                <h5>{{ t.detected_items }}</h5>
+                            </div>
+                            {% if detected_items_ui and detected_items_ui.get('parallel_mode') %}
+                            <span class="analysis-mode-badge parallel">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M16 3h5v5M8 3H3v5M3 16v5h5M21 16v5h-5"></path>
+                                </svg>
+                                Cross-Validated
+                            </span>
+                            {% elif model_type == 'openai_sam' %}
+                            <span class="analysis-mode-badge parallel">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M16 3h5v5M8 3H3v5M3 16v5h5M21 16v5h-5"></path>
+                                </svg>
+                                OpenAI + SAM3
+                            </span>
+                            {% elif model_type == 'openai' %}
+                            <span class="analysis-mode-badge openai">OpenAI</span>
+                            {% elif model_type == 'mllm' %}
+                            <span class="analysis-mode-badge claude">Claude</span>
+                            {% elif model_type == 'mock' %}
+                            <span class="analysis-mode-badge mock">Mock</span>
+                            {% endif %}
+                        </div>
+
+                        {% if detected_items_ui and detected_items_ui.get('parallel_mode') %}
+                        <!-- ══════ CROSS-VALIDATION MODE (OpenAI + SAM3) ══════ -->
+
+                        {% if detected_items_ui['items'] %}
+                        {#
+                        NEW PARKING VIOLATION LOGIC:
+                        - is_absence_based: True for items where NOT finding = GOOD (driver, permit)
+                        - detected: True when check PASSES (presence found OR absence confirmed)
+                        - Confidence values are already INVERTED for absence-based items
+                        #}
+
+                        {# Categorize items by type #}
+                        {% set hallucination_items = [] %}
+                        {% set absence_detected_items = [] %}
+                        {% set presence_detected_items = [] %}
+                        {% set unverified_items = [] %}
+
+                        {% for item in detected_items_ui['items'] %}
+                            {% if item.is_hallucination_risk %}
+                                {% set _ = hallucination_items.append(item) %}
+                            {% elif item.detected and item.get('is_absence_based', false) %}
+                                {# Absence confirmed (no driver, no permit) - GREEN #}
+                                {% set _ = absence_detected_items.append(item) %}
+                            {% elif item.detected %}
+                                {# Presence confirmed (vehicle, sign) - GREEN #}
+                                {% set _ = presence_detected_items.append(item) %}
+                            {% else %}
+                                {# Unverified - needs manual check #}
+                                {% set _ = unverified_items.append(item) %}
+                            {% endif %}
+                        {% endfor %}
+
+                        {# Scrollable container for detection cards #}
+                        <div class="detection-items-scroll-container">
+                            <div class="detection-items-grid" id="detectionList">
+
+                                {# === HALLUCINATION RISK ITEMS (presence-based only) === #}
+                                {% for item in hallucination_items %}
+                                <div class="detection-item-card hallucination-risk">
+                                    <div class="item-header">
+                                        <span class="item-label">
+                                            <svg class="warning-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                                <line x1="12" y1="9" x2="12" y2="13"></line>
+                                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                            </svg>
+                                            {{ item.label }}
+                                        </span>
+                                        <span class="item-status hallucination">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                                <circle cx="12" cy="12" r="10"></circle>
+                                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                            </svg>
+                                        </span>
+                                    </div>
+                                    <div class="confidence-bars">
+                                        <div class="confidence-row">
+                                            <span class="source-name sam3">SAM3</span>
+                                            <div class="bar-container">
+                                                <div class="bar-fill sam3" style="width: {{ item.sam3_confidence }}%"></div>
+                                            </div>
+                                            <span class="conf-value">{{ item.sam3_confidence }}%</span>
+                                        </div>
+                                        <div class="confidence-row">
+                                            <span class="source-name openai">OpenAI</span>
+                                            <div class="bar-container">
+                                                <div class="bar-fill openai" style="width: {{ item.openai_confidence }}%"></div>
+                                            </div>
+                                            <span class="conf-value">{{ item.openai_confidence }}%</span>
+                                        </div>
+                                        <div class="confidence-row final">
+                                            <span class="source-name final">Final</span>
+                                            <div class="bar-container">
+                                                <div class="bar-fill final warning" style="width: {{ item.confidence }}%"></div>
+                                            </div>
+                                            <span class="conf-value warning">{{ item.confidence }}%</span>
+                                        </div>
+                                    </div>
+                                    <div class="risk-note">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                        </svg>
+                                        {{ item.reasoning }}
+                                    </div>
+                                </div>
+                                {% endfor %}
+
+                                {# === ABSENCE CONFIRMED ITEMS (no driver, no permit) - GREEN === #}
+                                {% for item in absence_detected_items %}
+                                <div class="detection-item-card absence-confirmed">
+                                    <div class="item-header">
+                                        <span class="item-label">
+                                            <svg class="absence-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                            </svg>
+                                            {{ item.label }}
+                                        </span>
+                                        <span class="item-status detected">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                                <polyline points="20 6 9 17 4 12"></polyline>
+                                            </svg>
+                                        </span>
+                                    </div>
+                                    <div class="confidence-bars">
+                                        <div class="confidence-row">
+                                            <span class="source-name sam3">SAM3</span>
+                                            <div class="bar-container">
+                                                <div class="bar-fill sam3" style="width: {{ item.sam3_confidence }}%"></div>
+                                            </div>
+                                            <span class="conf-value">{{ item.sam3_confidence }}%</span>
+                                        </div>
+                                        <div class="confidence-row">
+                                            <span class="source-name openai">OpenAI</span>
+                                            <div class="bar-container">
+                                                <div class="bar-fill openai" style="width: {{ item.openai_confidence }}%"></div>
+                                            </div>
+                                            <span class="conf-value">{{ item.openai_confidence }}%</span>
+                                        </div>
+                                        <div class="confidence-row final">
+                                            <span class="source-name final">Result</span>
+                                            <div class="bar-container">
+                                                <div class="bar-fill final success" style="width: {{ item.confidence }}%"></div>
+                                            </div>
+                                            <span class="conf-value success">{{ item.confidence }}%</span>
+                                        </div>
+                                    </div>
+                                    <div class="absence-note">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                        </svg>
+                                        {{ item.reasoning }}
+                                    </div>
+                                </div>
+                                {% endfor %}
+
+                                {# === PRESENCE DETECTED ITEMS (vehicle, sign, plate) - GREEN === #}
+                                {% for item in presence_detected_items %}
+                                <div class="detection-item-card detected">
+                                    <div class="item-header">
+                                        <span class="item-label">{{ item.label }}</span>
+                                        <span class="item-status detected">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                                <polyline points="20 6 9 17 4 12"></polyline>
+                                            </svg>
+                                        </span>
+                                    </div>
+                                    <div class="confidence-bars">
+                                        <div class="confidence-row">
+                                            <span class="source-name sam3">SAM3</span>
+                                            <div class="bar-container">
+                                                <div class="bar-fill sam3" style="width: {{ item.sam3_confidence }}%"></div>
+                                            </div>
+                                            <span class="conf-value">{{ item.sam3_confidence }}%</span>
+                                        </div>
+                                        <div class="confidence-row">
+                                            <span class="source-name openai">OpenAI</span>
+                                            <div class="bar-container">
+                                                <div class="bar-fill openai" style="width: {{ item.openai_confidence }}%"></div>
+                                            </div>
+                                            <span class="conf-value">{{ item.openai_confidence }}%</span>
+                                        </div>
+                                        <div class="confidence-row final">
+                                            <span class="source-name final">Final</span>
+                                            <div class="bar-container">
+                                                <div class="bar-fill final" style="width: {{ item.confidence }}%"></div>
+                                            </div>
+                                            <span class="conf-value">{{ item.confidence }}%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+
+                                {# === UNVERIFIED ITEMS (low confidence) - YELLOW === #}
+                                {% for item in unverified_items %}
+                                <div class="detection-item-card unverified">
+                                    <div class="item-header">
+                                        <span class="item-label">{{ item.label }}</span>
+                                        <span class="item-status unverified">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                                <circle cx="12" cy="12" r="10"></circle>
+                                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                            </svg>
+                                        </span>
+                                    </div>
+                                    <div class="confidence-bars">
+                                        <div class="confidence-row">
+                                            <span class="source-name sam3">SAM3</span>
+                                            <div class="bar-container">
+                                                <div class="bar-fill sam3" style="width: {{ item.sam3_confidence }}%"></div>
+                                            </div>
+                                            <span class="conf-value">{{ item.sam3_confidence }}%</span>
+                                        </div>
+                                        <div class="confidence-row">
+                                            <span class="source-name openai">OpenAI</span>
+                                            <div class="bar-container">
+                                                <div class="bar-fill openai" style="width: {{ item.openai_confidence }}%"></div>
+                                            </div>
+                                            <span class="conf-value">{{ item.openai_confidence }}%</span>
+                                        </div>
+                                        <div class="confidence-row final">
+                                            <span class="source-name final">Final</span>
+                                            <div class="bar-container">
+                                                <div class="bar-fill final unverified" style="width: {{ item.confidence }}%"></div>
+                                            </div>
+                                            <span class="conf-value">{{ item.confidence }}%</span>
+                                        </div>
+                                    </div>
+                                    {% if item.reasoning %}
+                                    <div class="unverified-note">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                        </svg>
+                                        {{ item.reasoning }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        {# Summary of not detected items from server-side filtering #}
+                        {% if detected_items_ui.get('not_detected_labels') and detected_items_ui['not_detected_labels']|length > 0 %}
+                        <div class="not-detected-summary">
+                            <span class="summary-label">{{ t.not_detected_label if t.not_detected_label else 'Not scanned' }}:</span>
+                            <span class="summary-items">
+                                {% for label in detected_items_ui['not_detected_labels'] %}{{ label }}{% if not loop.last %}, {% endif %}{% endfor %}
+                            </span>
+                        </div>
+                        {% endif %}
+                        {% endif %}
+
+                        {% else %}
+                        <!-- ══════ STANDARD MODE (Claude/OpenAI/Mock) ══════ -->
+
+                        {% if detected_items_ui and detected_items_ui['items'] %}
+                        <div class="detection-items-list" id="detectionList">
+                            {% for item in detected_items_ui['items'] %}
+                            {# Determine card type based on detection status #}
+                            {% set card_class = 'absence_confirmed' if item.detected and item.get('is_absence_based', false) else ('presence_detected' if item.detected else 'not_detected') %}
+
+                            <div class="detection-card {{ card_class }}">
+                                <div class="card-indicator"></div>
+                                <div class="card-content">
+                                    <div class="card-header">
+                                        <span class="card-icon">
+                                            {% if item.detected %}
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                            </svg>
+                                            {% else %}
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                                <circle cx="12" cy="12" r="10"></circle>
+                                                <line x1="15" y1="9" x2="9" y2="15"></line>
+                                                <line x1="9" y1="9" x2="15" y2="15"></line>
+                                            </svg>
+                                            {% endif %}
+                                        </span>
+                                        <span class="card-label">{{ item.label }}</span>
+                                        <span class="card-badge">
+                                            {% if item.detected %}
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                                <polyline points="20 6 9 17 4 12"></polyline>
+                                            </svg>
+                                            {% else %}
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                                            </svg>
+                                            {% endif %}
+                                        </span>
+                                    </div>
+
+                                    {% if item.extracted_text or item.sign_code %}
+                                    <div class="card-details">
+                                        {% if item.extracted_text %}<span class="detail-text">{{ item.extracted_text }}</span>{% endif %}
+                                        {% if item.sign_code %}<span class="detail-text">{{ item.sign_code }}</span>{% endif %}
+                                    </div>
+                                    {% endif %}
+
+                                    <div class="confidence-section">
+                                        <div class="confidence-row">
+                                            <span class="source-label">RESULT</span>
+                                            <div class="bar-wrapper">
+                                                <div class="bar-track">
+                                                    <div class="bar-fill final {% if item.detected %}success{% else %}warning{% endif %}" style="width: {{ item.confidence }}%"></div>
+                                                </div>
+                                            </div>
+                                            <span class="conf-value {% if item.detected %}success{% else %}warning{% endif %}">{{ item.confidence }}%</span>
+                                        </div>
+                                    </div>
+
+                                    {% if item.reasoning %}
+                                    <div class="card-reasoning">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                        <span>{{ item.reasoning }}</span>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="detection-empty">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                            </svg>
+                            <p>{{ t.mllm_coming_soon }}</p>
+                        </div>
+                        {% endif %}
+                        {% endif %}
+                    </div>
+
+                    <!-- Verification Summary (for all MLLM modes) -->
+                    {% if sam3_results and sam3_results.mllm_mode and sam3_results.verification %}
+                    <div class="verification-summary-card">
+                        <div class="verification-header">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 11l3 3L22 4"></path>
+                                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                            </svg>
+                            <span>{{ t.verification_status if t.verification_status else 'Verification' }}</span>
+                        </div>
+                        <div class="verification-content {{ 'verified' if sam3_results.verification.observation_supported else 'warning' }}">
+                            <div class="verification-status">
+                                {% if sam3_results.verification.observation_supported %}
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                </svg>
+                                <span>{{ t.observation_supported if t.observation_supported else 'Evidence supports observation' }}</span>
+                                {% else %}
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                </svg>
+                                <span>{{ t.discrepancies_found if t.discrepancies_found else 'Discrepancies found' }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="verification-score">
+                                <span class="score-label">{{ t.confidence }}:</span>
+                                <span class="score-value">{{ (sam3_results.verification.overall_confidence * 100)|int }}%</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
                     {% else %}
                     <div class="no-images-placeholder">
                         <p>{{ t.no_images_available }}</p>
@@ -475,6 +765,8 @@
                     {% endif %}
                 </div>
 
+                {# Hide Confidence Summary for parallel mode - redundant info shown in detection cards #}
+                {% if not (detected_items_ui and detected_items_ui.get('parallel_mode')) %}
                 <!-- Confidence Summary -->
                 <div class="confidence-card">
                     <h4>{{ t.confidence_scores }}</h4>
@@ -508,6 +800,7 @@
                         </div>
                     </div>
                 </div>
+                {% endif %}
 
                 <!-- Legal v2 components moved to main content area -->
             </div>
@@ -746,7 +1039,7 @@
                     {{ t.export_json }}
                 </button>
 
-                {% if sam3_results and sam3_results.pipeline_version == '2.0' and sam3_results.recommendation %}
+                {% if sam3_results and (sam3_results.pipeline_version == '2.0' or sam3_results.pipeline_version == '2.0-parallel') and sam3_results.recommendation %}
                 {% if sam3_results.recommendation.action == 'approve' %}
                 <button class="action-btn action-btn-primary" id="quickApproveBtn">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

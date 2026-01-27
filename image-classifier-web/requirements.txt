@@ -7,9 +7,39 @@ numpy>=1.24.0
 anthropic>=0.18.0
 openai>=1.0.0
 
-# SAM3 Dependencies (optional - for real model inference)
-# Uncomment below when deploying with GPU support
-# torch>=2.0.0
-# torchvision>=0.15.0
-# transformers>=4.35.0
-# segment-anything-2
+# ═══════════════════════════════════════════════════════════════════════════
+# SAM3 DEPENDENCIES (Native Text Prompting)
+# ═══════════════════════════════════════════════════════════════════════════
+# SAM3 supports native text prompting - no GroundingDINO needed!
+# By default, SAM_MOCK_MODE=false in .env, so real models will be used.
+# Set SAM_MOCK_MODE=true to disable real models and use mock data.
+
+# PyTorch (install according to your CUDA version from https://pytorch.org)
+# For CPU only: pip install torch torchvision
+# For CUDA 11.8: pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+# For CUDA 12.1: pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+torch>=2.0.0
+torchvision>=0.15.0
+
+# HuggingFace Transformers (includes SAM3 support with text prompting)
+transformers>=4.35.0
+
+# Optional: accelerate for faster model loading
+# accelerate>=0.24.0
+
+# ═══════════════════════════════════════════════════════════════════════════
+# SAM3 MODEL (automatic download on first use)
+# ═══════════════════════════════════════════════════════════════════════════
+# SAM3 Features:
+#   - Native text prompting: "vehicle", "traffic sign", etc.
+#   - Returns: masks, boxes, scores
+#   - 0.9B parameters (~900MB download)
+#   - Supports: CUDA, MPS (Apple Silicon), CPU
+#
+# Model: facebook/sam3
+# HuggingFace: https://huggingface.co/facebook/sam3
+#
+# Configure via environment variables:
+#   SAM3_MODEL=facebook/sam3
+#   SAM3_DETECTION_THRESHOLD=0.5
+#   SAM3_MASK_THRESHOLD=0.5

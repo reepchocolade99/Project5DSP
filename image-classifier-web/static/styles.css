@@ -2566,3 +2566,1170 @@ select option[value="mock"] {
     color: #7c3aed;
     font-weight: 500;
 }
+
+/* ==================== SAM3 + OPENAI PARALLEL MODE STYLES ==================== */
+
+/* Parallel Results Container */
+.detected-items.parallel-results {
+    background: var(--ams-white);
+    border-radius: var(--radius-md);
+    padding: 16px;
+}
+
+.detected-items.parallel-results h5 {
+    margin: 0 0 4px 0;
+    color: var(--ams-grey-800);
+}
+
+.parallel-subtitle {
+    margin: 0 0 16px 0;
+    font-size: 0.75rem;
+    color: var(--ams-grey-500);
+}
+
+/* Hallucination Warnings Box */
+.hallucination-warnings-box {
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    margin-bottom: 16px;
+}
+
+.hallucination-warnings-box .warning-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: #92400e;
+    margin-bottom: 8px;
+}
+
+.hallucination-warnings-box .warning-header svg {
+    stroke: #f59e0b;
+}
+
+.hallucination-warnings-box .warning-list {
+    margin: 0;
+    padding: 0 0 0 20px;
+    font-size: 0.8rem;
+    color: #92400e;
+}
+
+.hallucination-warnings-box .warning-list li {
+    margin-bottom: 4px;
+}
+
+/* Detection Cards Container */
+.detection-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Individual Detection Card */
+.detection-card {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    background: var(--ams-white);
+    transition: border-color 0.2s ease;
+}
+
+.detection-card:hover {
+    border-color: var(--ams-grey-400);
+}
+
+.detection-card.hallucination-risk {
+    border-color: #f59e0b;
+    background: #fffbeb;
+}
+
+.detection-card.not-detected {
+    opacity: 0.7;
+}
+
+/* Detection Header */
+.detection-card .detection-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.detection-card .detection-label {
+    font-weight: 500;
+    color: var(--ams-grey-800);
+    font-size: 0.9rem;
+}
+
+.detection-card .status-badge {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.detection-card .status-badge.detected {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.detection-card .status-badge.not-detected {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* Dual Confidence Bars */
+.dual-confidence {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.conf-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.conf-row.final {
+    margin-top: 4px;
+    padding-top: 6px;
+    border-top: 1px dashed var(--border-color);
+}
+
+.conf-row .source-label {
+    width: 50px;
+    font-size: 0.65rem;
+    color: var(--ams-grey-500);
+    text-transform: uppercase;
+    font-weight: 500;
+}
+
+.bar-track {
+    flex: 1;
+    height: 6px;
+    background: var(--ams-grey-200);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+/* Bar Colors */
+.bar-fill.sam3 {
+    background: #3b82f6;  /* Blue */
+}
+
+.bar-fill.openai {
+    background: #8b5cf6;  /* Purple */
+}
+
+.bar-fill.merged {
+    background: #10b981;  /* Green */
+}
+
+.bar-fill.hallucination {
+    background: #f59e0b;  /* Orange/Warning */
+}
+
+.conf-row .percentage {
+    width: 40px;
+    text-align: right;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--ams-grey-700);
+}
+
+.conf-row .percentage.warning {
+    color: #d97706;
+}
+
+.conf-row .percentage .warning-icon {
+    margin-left: 2px;
+}
+
+/* Hallucination Note */
+.hallucination-note {
+    margin-top: 8px;
+    padding: 8px;
+    background: #fef3c7;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    color: #92400e;
+    line-height: 1.4;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .detection-card {
+        padding: 10px;
+    }
+
+    .conf-row .source-label {
+        width: 40px;
+        font-size: 0.6rem;
+    }
+
+    .conf-row .percentage {
+        width: 35px;
+        font-size: 0.7rem;
+    }
+
+    .bar-track {
+        height: 5px;
+    }
+}
+
+/* ==================== PARALLEL MODE - CONFIDENCE SUMMARY OVERRIDE ==================== */
+
+/* When in parallel mode, show source indicators on main confidence */
+.confidence-item[data-mode="parallel"] .conf-header::after {
+    content: "Merged";
+    font-size: 0.65rem;
+    color: var(--ams-grey-500);
+    margin-left: 8px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════ */
+/* UNIFIED OBJECT DETECTION CARD - Modern Design for All Model Types                       */
+/* ═══════════════════════════════════════════════════════════════════════════════════════ */
+
+.object-detection-card {
+    background: #fff;
+    border: 1px solid var(--ams-grey-200);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.detection-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--ams-grey-100);
+}
+
+.detection-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.detection-title svg {
+    color: var(--ams-primary);
+}
+
+.detection-title h5 {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--ams-grey-800);
+}
+
+/* Analysis Mode Badges */
+.analysis-mode-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.analysis-mode-badge.parallel {
+    background: linear-gradient(135deg, #e0f2fe 0%, #ddd6fe 100%);
+    color: #5b21b6;
+    border: 1px solid #a78bfa;
+}
+
+.analysis-mode-badge.openai {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #81c784;
+}
+
+.analysis-mode-badge.claude {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fbbf24;
+}
+
+.analysis-mode-badge.mock {
+    background: var(--ams-grey-100);
+    color: var(--ams-grey-600);
+    border: 1px solid var(--ams-grey-300);
+}
+
+/* Cross-Validation Alert */
+.cross-validation-alert {
+    display: flex;
+    gap: 12px;
+    padding: 12px 14px;
+    background: linear-gradient(135deg, #fef3c7 0%, #fef9c3 100%);
+    border: 1px solid #fbbf24;
+    border-radius: 8px;
+    margin-bottom: 16px;
+}
+
+.cross-validation-alert .alert-icon {
+    flex-shrink: 0;
+    color: #d97706;
+    margin-top: 2px;
+}
+
+.cross-validation-alert .alert-content {
+    flex: 1;
+}
+
+.cross-validation-alert .alert-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #92400e;
+    display: block;
+    margin-bottom: 6px;
+}
+
+.cross-validation-alert .alert-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.cross-validation-alert .alert-list li {
+    font-size: 0.75rem;
+    color: #a16207;
+    padding: 2px 0;
+    padding-left: 16px;
+    position: relative;
+}
+
+.cross-validation-alert .alert-list li::before {
+    content: "•";
+    position: absolute;
+    left: 4px;
+    color: #d97706;
+}
+
+/* Detection Items Grid */
+.detection-items-grid {
+    display: grid;
+    gap: 12px;
+}
+
+/* Detection Item Card */
+.detection-item-card {
+    background: var(--ams-grey-50);
+    border: 1px solid var(--ams-grey-200);
+    border-radius: 10px;
+    padding: 14px;
+    transition: all 0.2s ease;
+}
+
+.detection-item-card:hover {
+    border-color: var(--ams-primary);
+    box-shadow: 0 2px 8px rgba(0, 70, 153, 0.08);
+}
+
+.detection-item-card.detected {
+    background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+    border-color: #86efac;
+}
+
+.detection-item-card.not-detected {
+    background: var(--ams-grey-50);
+    border-color: var(--ams-grey-200);
+    opacity: 0.85;
+}
+
+.detection-item-card.hallucination-risk {
+    background: linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%);
+    border-color: #fbbf24;
+}
+
+/* Item Header */
+.detection-item-card .item-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.detection-item-card .item-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--ams-grey-800);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.detection-item-card .item-label .extracted-info {
+    font-size: 0.7rem;
+    font-weight: 400;
+    color: var(--ams-grey-500);
+}
+
+.detection-item-card .item-status {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.detection-item-card .item-status.detected {
+    background: #22c55e;
+    color: white;
+}
+
+.detection-item-card .item-status.not-detected {
+    background: var(--ams-grey-300);
+    color: white;
+}
+
+/* Confidence Bars Container */
+.confidence-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.confidence-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.confidence-row.single {
+    margin-top: 4px;
+}
+
+.confidence-row.final {
+    margin-top: 4px;
+    padding-top: 6px;
+    border-top: 1px dashed var(--ams-grey-200);
+}
+
+.confidence-row .source-name {
+    width: 50px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: var(--ams-grey-500);
+    flex-shrink: 0;
+}
+
+.confidence-row .source-name.sam3 {
+    color: #2563eb;
+}
+
+.confidence-row .source-name.openai {
+    color: #7c3aed;
+}
+
+.confidence-row .source-name.final {
+    color: #059669;
+}
+
+.confidence-row .bar-container {
+    flex: 1;
+    height: 8px;
+    background: var(--ams-grey-200);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.confidence-row .bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.4s ease;
+}
+
+.confidence-row .bar-fill.sam3 {
+    background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
+}
+
+.confidence-row .bar-fill.openai {
+    background: linear-gradient(90deg, #8b5cf6 0%, #a78bfa 100%);
+}
+
+.confidence-row .bar-fill.final {
+    background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+}
+
+.confidence-row .bar-fill.final.warning {
+    background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
+}
+
+.confidence-row .bar-fill.high {
+    background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+}
+
+.confidence-row .bar-fill.medium {
+    background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
+}
+
+.confidence-row .bar-fill.low {
+    background: linear-gradient(90deg, #ef4444 0%, #f87171 100%);
+}
+
+.confidence-row .conf-value {
+    width: 40px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-align: right;
+    color: var(--ams-grey-700);
+    flex-shrink: 0;
+}
+
+.confidence-row .conf-value.warning {
+    color: #d97706;
+}
+
+.confidence-row .conf-value.high {
+    color: #059669;
+}
+
+.confidence-row .conf-value.medium {
+    color: #d97706;
+}
+
+.confidence-row .conf-value.low {
+    color: #dc2626;
+}
+
+/* Risk Note */
+.risk-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: 10px;
+    padding: 8px 10px;
+    background: rgba(251, 191, 36, 0.15);
+    border-radius: 6px;
+    font-size: 0.7rem;
+    color: #92400e;
+    line-height: 1.4;
+}
+
+.risk-note svg {
+    flex-shrink: 0;
+    margin-top: 1px;
+    color: #d97706;
+}
+
+/* Empty State */
+.detection-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+    color: var(--ams-grey-400);
+    text-align: center;
+}
+
+.detection-empty svg {
+    margin-bottom: 12px;
+    opacity: 0.5;
+}
+
+.detection-empty p {
+    margin: 0;
+    font-size: 0.8rem;
+}
+
+/* Verification Summary Card */
+.verification-summary-card {
+    background: #fff;
+    border: 1px solid var(--ams-grey-200);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 16px;
+}
+
+.verification-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    color: var(--ams-grey-600);
+}
+
+.verification-header span {
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.verification-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    border-radius: 8px;
+}
+
+.verification-content.verified {
+    background: linear-gradient(135deg, #dcfce7 0%, #d1fae5 100%);
+    border: 1px solid #86efac;
+}
+
+.verification-content.warning {
+    background: linear-gradient(135deg, #fef3c7 0%, #fef9c3 100%);
+    border: 1px solid #fbbf24;
+}
+
+.verification-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.verification-content.verified .verification-status svg {
+    color: #16a34a;
+}
+
+.verification-content.verified .verification-status span {
+    color: #166534;
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+
+.verification-content.warning .verification-status svg {
+    color: #d97706;
+}
+
+.verification-content.warning .verification-status span {
+    color: #92400e;
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+
+.verification-score {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.verification-score .score-label {
+    font-size: 0.75rem;
+    color: var(--ams-grey-500);
+}
+
+.verification-score .score-value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--ams-grey-800);
+}
+
+/* Responsive Adjustments for Object Detection Card */
+@media (max-width: 768px) {
+    .object-detection-card {
+        padding: 12px;
+    }
+
+    .detection-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .detection-item-card {
+        padding: 12px;
+    }
+
+    .confidence-row .source-name {
+        width: 40px;
+        font-size: 0.6rem;
+    }
+
+    .confidence-row .conf-value {
+        width: 35px;
+        font-size: 0.7rem;
+    }
+
+    .verification-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════ */
+/* NOT DETECTED SUMMARY - Compact summary for zero-detection items                         */
+/* ═══════════════════════════════════════════════════════════════════════════════════════ */
+
+.not-detected-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px;
+    padding: 10px 12px;
+    background: var(--ams-grey-50);
+    border: 1px solid var(--ams-grey-200);
+    border-radius: 8px;
+    margin-top: 12px;
+    font-size: 0.75rem;
+}
+
+.not-detected-summary .summary-label {
+    font-weight: 600;
+    color: var(--ams-grey-600);
+    margin-right: 4px;
+}
+
+.not-detected-summary .summary-items {
+    color: var(--ams-grey-400);
+    font-style: italic;
+    line-height: 1.4;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════ */
+/* COMPACT DETECTION CARDS - More compact styling for sidebar optimization                 */
+/* ═══════════════════════════════════════════════════════════════════════════════════════ */
+
+/* More compact detection item cards */
+.detection-items-grid {
+    gap: 10px;
+}
+
+.detection-item-card {
+    padding: 12px;
+}
+
+.detection-item-card .item-header {
+    margin-bottom: 10px;
+}
+
+.detection-item-card .item-label {
+    font-size: 0.8rem;
+}
+
+/* More compact confidence bars */
+.confidence-row {
+    gap: 8px;
+}
+
+.confidence-row .bar-container {
+    height: 6px;
+}
+
+.confidence-row .source-name {
+    width: 45px;
+    font-size: 0.6rem;
+}
+
+.confidence-row .conf-value {
+    width: 38px;
+    font-size: 0.7rem;
+}
+
+/* More compact risk note */
+.risk-note {
+    margin-top: 8px;
+    padding: 6px 8px;
+    font-size: 0.65rem;
+    line-height: 1.3;
+}
+
+/* Responsive adjustments for not detected summary */
+@media (max-width: 768px) {
+    .not-detected-summary {
+        padding: 8px 10px;
+        font-size: 0.7rem;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════ */
+/* SCROLLABLE DETECTION CARDS - Container for scrollable detection items                   */
+/* ═══════════════════════════════════════════════════════════════════════════════════════ */
+
+.detection-items-scroll-container {
+    max-height: 320px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 4px;
+    margin-right: -4px;
+}
+
+/* Custom scrollbar for detection container */
+.detection-items-scroll-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.detection-items-scroll-container::-webkit-scrollbar-track {
+    background: var(--ams-grey-100);
+    border-radius: 3px;
+}
+
+.detection-items-scroll-container::-webkit-scrollbar-thumb {
+    background: var(--ams-grey-300);
+    border-radius: 3px;
+}
+
+.detection-items-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: var(--ams-grey-400);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════ */
+/* HALLUCINATION STATUS - Warning styling for hallucination risk items                     */
+/* ═══════════════════════════════════════════════════════════════════════════════════════ */
+
+/* Hallucination status icon (warning circle) */
+.detection-item-card .item-status.hallucination {
+    background: #f59e0b;
+    color: white;
+}
+
+/* Warning icon in item label */
+.detection-item-card .item-label .warning-icon {
+    color: #d97706;
+    margin-right: 4px;
+    flex-shrink: 0;
+    vertical-align: middle;
+}
+
+/* Enhanced hallucination card styling */
+.detection-item-card.hallucination-risk .item-label {
+    display: flex;
+    align-items: center;
+    color: #92400e;
+}
+
+/* Responsive adjustments for scrollable container */
+@media (max-width: 768px) {
+    .detection-items-scroll-container {
+        max-height: 280px;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════ */
+/* ABSENCE CONFIRMED - Styling for inverse categories where absence is GOOD                */
+/* ═══════════════════════════════════════════════════════════════════════════════════════ */
+
+/* Absence confirmed card - green/teal color scheme */
+.detection-item-card.absence-confirmed {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    border-color: #10b981;
+}
+
+.detection-item-card.absence-confirmed:hover {
+    border-color: #059669;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
+}
+
+/* Absence icon styling */
+.detection-item-card.absence-confirmed .item-label {
+    display: flex;
+    align-items: center;
+    color: #065f46;
+}
+
+.detection-item-card .item-label .absence-icon {
+    color: #10b981;
+    margin-right: 6px;
+    flex-shrink: 0;
+}
+
+/* Absence note - positive styling */
+.absence-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: 10px;
+    padding: 8px 10px;
+    background: rgba(16, 185, 129, 0.1);
+    border-radius: 6px;
+    font-size: 0.7rem;
+    color: #065f46;
+    line-height: 1.4;
+}
+
+.absence-note svg {
+    flex-shrink: 0;
+    margin-top: 1px;
+    color: #10b981;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════ */
+/* UNVERIFIED STATE - For items that need manual verification                              */
+/* ═══════════════════════════════════════════════════════════════════════════════════════ */
+
+/* Unverified card styling - yellow/amber color scheme */
+.detection-item-card.unverified {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    border-color: #f59e0b;
+}
+
+.detection-item-card.unverified:hover {
+    border-color: #d97706;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
+}
+
+/* Unverified status icon */
+.detection-item-card .item-status.unverified {
+    background: #f59e0b;
+    color: white;
+}
+
+/* Unverified note styling */
+.unverified-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: 10px;
+    padding: 8px 10px;
+    background: rgba(245, 158, 11, 0.1);
+    border-radius: 6px;
+    font-size: 0.7rem;
+    color: #92400e;
+    line-height: 1.4;
+}
+
+.unverified-note svg {
+    flex-shrink: 0;
+    margin-top: 1px;
+    color: #f59e0b;
+}
+
+/* Success/Warning colors for final bar */
+.bar-fill.final.success {
+    background: linear-gradient(90deg, #10b981, #34d399);
+}
+
+.bar-fill.final.unverified {
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+
+.conf-value.success {
+    color: #059669;
+    font-weight: 600;
+}
+
+.conf-value.warning {
+    color: #d97706;
+    font-weight: 600;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   STANDARD MODE DETECTION CARDS (Claude/OpenAI single mode)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.detection-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.detection-card {
+    display: flex;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--ams-white);
+    border: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+}
+
+.detection-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Card indicator (left colored bar) */
+.detection-card .card-indicator {
+    width: 4px;
+    flex-shrink: 0;
+}
+
+.detection-card.presence_detected .card-indicator {
+    background: linear-gradient(180deg, #10b981, #34d399);
+}
+
+.detection-card.absence_confirmed .card-indicator {
+    background: linear-gradient(180deg, #10b981, #34d399);
+}
+
+.detection-card.not_detected .card-indicator {
+    background: linear-gradient(180deg, #f59e0b, #fbbf24);
+}
+
+/* Card content */
+.detection-card .card-content {
+    flex: 1;
+    padding: 16px;
+}
+
+/* Card header */
+.detection-card .card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.detection-card .card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.detection-card.presence_detected .card-icon,
+.detection-card.absence_confirmed .card-icon {
+    background: #d1fae5;
+    color: #059669;
+}
+
+.detection-card.not_detected .card-icon {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.detection-card .card-label {
+    flex: 1;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--ams-grey-800);
+}
+
+.detection-card .card-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.detection-card.presence_detected .card-badge,
+.detection-card.absence_confirmed .card-badge {
+    background: #10b981;
+    color: white;
+}
+
+.detection-card.not_detected .card-badge {
+    background: #f59e0b;
+    color: white;
+}
+
+/* Card details (extracted text, sign code) */
+.detection-card .card-details {
+    margin-bottom: 12px;
+    padding-left: 38px;
+}
+
+.detection-card .detail-text {
+    display: inline-block;
+    font-size: 0.8rem;
+    color: var(--ams-grey-600);
+    background: var(--ams-grey-100);
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-right: 6px;
+}
+
+/* Confidence section */
+.detection-card .confidence-section {
+    padding-left: 38px;
+}
+
+.detection-card .confidence-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.detection-card .source-label {
+    width: 50px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--ams-grey-500);
+    text-transform: uppercase;
+}
+
+.detection-card .bar-wrapper {
+    flex: 1;
+}
+
+.detection-card .bar-track {
+    height: 8px;
+    background: var(--ams-grey-200);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.detection-card .bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.4s ease;
+}
+
+.detection-card .conf-value {
+    width: 45px;
+    text-align: right;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+/* Card reasoning */
+.detection-card .card-reasoning {
+    margin-top: 10px;
+    padding: 10px 12px;
+    padding-left: 38px;
+    background: var(--ams-grey-50);
+    border-radius: 8px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: var(--ams-grey-600);
+    line-height: 1.4;
+}
+
+.detection-card.presence_detected .card-reasoning,
+.detection-card.absence_confirmed .card-reasoning {
+    background: #ecfdf5;
+    color: #047857;
+}
+
+.detection-card.presence_detected .card-reasoning svg,
+.detection-card.absence_confirmed .card-reasoning svg {
+    color: #10b981;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.detection-card.not_detected .card-reasoning {
+    background: #fffbeb;
+    color: #92400e;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .detection-card .card-content {
+        padding: 12px;
+    }
+    
+    .detection-card .card-details,
+    .detection-card .confidence-section,
+    .detection-card .card-reasoning {
+        padding-left: 0;
+    }
+}

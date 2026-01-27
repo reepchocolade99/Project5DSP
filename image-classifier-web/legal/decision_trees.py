@@ -14,6 +14,194 @@ Version: 2.0
 """
 
 LEGAL_DECISION_TREES = {
+    # ─────────────────────────────────────────────────────────────────────────
+    # E1 - Parkeerverbod (No Parking Zone)
+    # ─────────────────────────────────────────────────────────────────────────
+    "E1": {
+        "name": "Parkeerverbod",
+        "name_en": "No Parking Zone (E1)",
+        "required_checks": [
+            {
+                "check_id": "E1_SIGN",
+                "description": "E1 no parking sign is clearly visible",
+                "description_nl": "Verkeersbord E1 (parkeerverbod) is duidelijk zichtbaar",
+                "source_field": "traffic_sign.sign_code",
+                "expected_value": "E1",
+                "legal_reference": "RVV 1990 Bijlage 1, Bord E1",
+                "legal_url": "https://wetten.overheid.nl/BWBR0004825#Bijlage1"
+            },
+            {
+                "check_id": "E1_NO_PERMIT",
+                "description": "No valid exemption visible",
+                "description_nl": "Geen geldige ontheffing zichtbaar",
+                "source_field": "windshield_items.permit",
+                "expected_value": "no",
+                "legal_reference": "RVV 1990 Article 87",
+                "legal_url": "https://wetten.overheid.nl/BWBR0004825#Artikel87"
+            },
+            {
+                "check_id": "E1_VEHICLE_PARKED",
+                "description": "Vehicle is parked in violation zone",
+                "description_nl": "Voertuig is geparkeerd in verbodzone",
+                "source_field": "vehicle.parked",
+                "expected_value": True,
+                "legal_reference": "RVV 1990 Article 1 (definition of parking)",
+                "legal_url": "https://wetten.overheid.nl/BWBR0004825#Artikel1"
+            },
+            {
+                "check_id": "E1_NO_DRIVER",
+                "description": "Driver is not present in vehicle",
+                "description_nl": "Bestuurder is niet aanwezig in voertuig",
+                "source_field": "environment.driver_present",
+                "expected_value": False,
+                "legal_reference": "RVV 1990 Article 1 (definition of parking)",
+                "legal_url": "https://wetten.overheid.nl/BWBR0004825#Artikel1"
+            }
+        ],
+        "violation_article": "RVV 1990 Article 62 jo. bord E1",
+        "violation_article_url": "https://wetten.overheid.nl/BWBR0004825#Artikel62",
+        "violation_text_nl": "Het is verboden een voertuig te parkeren in een zone aangeduid door bord E1 (parkeerverbod).",
+        "violation_text_en": "It is prohibited to park a vehicle in a zone indicated by sign E1 (no parking).",
+        "wegslepen_basis": "Art. 170 lid 1 sub c WVW 1994",
+        "wegslepen_url": "https://wetten.overheid.nl/BWBR0006622#Artikel170",
+        "feit_code": "R394"
+    },
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # E2 - Verbod stil te staan (No Stopping Zone)
+    # ─────────────────────────────────────────────────────────────────────────
+    "E2": {
+        "name": "Verbod stil te staan",
+        "name_en": "No Stopping Zone (E2)",
+        "required_checks": [
+            {
+                "check_id": "E2_SIGN",
+                "description": "E2 no stopping sign is clearly visible",
+                "description_nl": "Verkeersbord E2 (stilstaan verboden) is duidelijk zichtbaar",
+                "source_field": "traffic_sign.sign_code",
+                "expected_value": "E2",
+                "legal_reference": "RVV 1990 Bijlage 1, Bord E2",
+                "legal_url": "https://wetten.overheid.nl/BWBR0004825#Bijlage1"
+            },
+            {
+                "check_id": "E2_NO_PERMIT",
+                "description": "No valid exemption visible",
+                "description_nl": "Geen geldige ontheffing zichtbaar",
+                "source_field": "windshield_items.permit",
+                "expected_value": "no",
+                "legal_reference": "RVV 1990 Article 87",
+                "legal_url": "https://wetten.overheid.nl/BWBR0004825#Artikel87"
+            },
+            {
+                "check_id": "E2_VEHICLE_STOPPED",
+                "description": "Vehicle is stopped in violation zone",
+                "description_nl": "Voertuig staat stil in verbodzone",
+                "source_field": "vehicle.stopped",
+                "expected_value": True,
+                "legal_reference": "RVV 1990 Article 1",
+                "legal_url": "https://wetten.overheid.nl/BWBR0004825#Artikel1"
+            }
+        ],
+        "violation_article": "RVV 1990 Article 62 jo. bord E2",
+        "violation_article_url": "https://wetten.overheid.nl/BWBR0004825#Artikel62",
+        "violation_text_nl": "Het is verboden een voertuig te laten stilstaan in een zone aangeduid door bord E2 (stilstaan verboden).",
+        "violation_text_en": "It is prohibited to stop a vehicle in a zone indicated by sign E2 (no stopping).",
+        "wegslepen_basis": "Art. 170 lid 1 sub c WVW 1994",
+        "wegslepen_url": "https://wetten.overheid.nl/BWBR0006622#Artikel170",
+        "feit_code": "R395"
+    },
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # E4 - Parkeergelegenheid (Parking Facility with conditions)
+    # ─────────────────────────────────────────────────────────────────────────
+    "E4": {
+        "name": "Parkeergelegenheid",
+        "name_en": "Parking Facility (E4)",
+        "required_checks": [
+            {
+                "check_id": "E4_SIGN",
+                "description": "E4 parking sign is clearly visible",
+                "description_nl": "Verkeersbord E4 (parkeergelegenheid) is duidelijk zichtbaar",
+                "source_field": "traffic_sign.sign_code",
+                "expected_value": "E4",
+                "legal_reference": "RVV 1990 Bijlage 1, Bord E4",
+                "legal_url": "https://wetten.overheid.nl/BWBR0004825#Bijlage1"
+            },
+            {
+                "check_id": "E4_CONDITIONS_VIOLATED",
+                "description": "Parking conditions on sub-sign are not met",
+                "description_nl": "Parkeervoorwaarden op onderbord worden niet nageleefd",
+                "source_field": "traffic_sign.conditions_met",
+                "expected_value": False,
+                "legal_reference": "RVV 1990 Article 62",
+                "legal_url": "https://wetten.overheid.nl/BWBR0004825#Artikel62"
+            },
+            {
+                "check_id": "E4_NO_DRIVER",
+                "description": "No driver present",
+                "description_nl": "Geen bestuurder aanwezig",
+                "source_field": "environment.driver_present",
+                "expected_value": False,
+                "legal_reference": "RVV 1990 Article 1 (definition of parking)",
+                "legal_url": "https://wetten.overheid.nl/BWBR0004825#Artikel1"
+            }
+        ],
+        "violation_article": "RVV 1990 Article 62 jo. bord E4",
+        "violation_article_url": "https://wetten.overheid.nl/BWBR0004825#Artikel62",
+        "violation_text_nl": "Het is verboden een voertuig te parkeren op een parkeergelegenheid aangeduid door bord E4 in strijd met de op het onderbord aangegeven voorwaarden.",
+        "violation_text_en": "It is prohibited to park a vehicle in a parking facility indicated by sign E4 in violation of the conditions stated on the sub-sign.",
+        "wegslepen_basis": "Art. 170 lid 1 sub c WVW 1994",
+        "wegslepen_url": "https://wetten.overheid.nl/BWBR0006622#Artikel170",
+        "feit_code": "R402a"
+    },
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # E5 - Taxistandplaats (Taxi Stand)
+    # ─────────────────────────────────────────────────────────────────────────
+    "E5": {
+        "name": "Taxistandplaats",
+        "name_en": "Taxi Stand (E5)",
+        "required_checks": [
+            {
+                "check_id": "E5_SIGN",
+                "description": "E5 taxi stand sign is clearly visible",
+                "description_nl": "Verkeersbord E5 (taxistandplaats) is duidelijk zichtbaar",
+                "source_field": "traffic_sign.sign_code",
+                "expected_value": "E5",
+                "legal_reference": "RVV 1990 Bijlage 1, Bord E5",
+                "legal_url": "https://wetten.overheid.nl/BWBR0004825#Bijlage1"
+            },
+            {
+                "check_id": "E5_NOT_TAXI",
+                "description": "Vehicle is not a taxi",
+                "description_nl": "Voertuig is geen taxi",
+                "source_field": "vehicle.is_taxi",
+                "expected_value": False,
+                "legal_reference": "RVV 1990 Article 24",
+                "legal_url": "https://wetten.overheid.nl/BWBR0004825#Artikel24"
+            },
+            {
+                "check_id": "E5_NO_DRIVER",
+                "description": "No driver present",
+                "description_nl": "Geen bestuurder aanwezig",
+                "source_field": "environment.driver_present",
+                "expected_value": False,
+                "legal_reference": "RVV 1990 Article 1 (definition of parking)",
+                "legal_url": "https://wetten.overheid.nl/BWBR0004825#Artikel1"
+            }
+        ],
+        "violation_article": "RVV 1990 Article 62 jo. bord E5",
+        "violation_article_url": "https://wetten.overheid.nl/BWBR0004825#Artikel62",
+        "violation_text_nl": "Het is verboden een voertuig anders dan een taxi te parkeren op een taxistandplaats aangeduid door bord E5.",
+        "violation_text_en": "It is prohibited to park a vehicle other than a taxi at a taxi stand indicated by sign E5.",
+        "wegslepen_basis": "Art. 170 lid 1 sub c WVW 1994",
+        "wegslepen_url": "https://wetten.overheid.nl/BWBR0006622#Artikel170",
+        "feit_code": "R402b"
+    },
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # E6 - Gehandicaptenparkeerplaats (Disabled Parking)
+    # ─────────────────────────────────────────────────────────────────────────
     "E6": {
         "name": "Gehandicaptenparkeerplaats",
         "name_en": "Disabled parking space",
@@ -241,18 +429,135 @@ LEGAL_DECISION_TREES = {
         "wegslepen_basis": "Municipal ordinance",
         "wegslepen_url": None,
         "feit_code": "R397"
+    },
+
+    "R396I": {
+        "name": "Gele doorgetrokken streep",
+        "name_en": "Yellow continuous line (no stopping)",
+        "required_checks": [
+            {
+                "check_id": "R396I_YELLOW_LINE",
+                "description": "Yellow continuous line visible on road",
+                "description_nl": "Gele doorgetrokken streep zichtbaar op de weg",
+                "source_field": "road_markings.yellow_line",
+                "expected_value": True,
+                "legal_reference": "RVV 1990 Article 23 paragraph 1c",
+                "legal_url": "https://wetten.overheid.nl/BWBR0004825#Artikel23"
+            },
+            {
+                "check_id": "R396I_NO_PERMIT",
+                "description": "No valid exemption visible",
+                "description_nl": "Geen geldige ontheffing zichtbaar",
+                "source_field": "windshield_items.permit",
+                "expected_value": "no",
+                "legal_reference": "RVV 1990 Article 87",
+                "legal_url": "https://wetten.overheid.nl/BWBR0004825#Artikel87"
+            },
+            {
+                "check_id": "R396I_NO_DRIVER",
+                "description": "No driver present in or near the vehicle",
+                "description_nl": "Geen bestuurder aanwezig in of bij het voertuig",
+                "source_field": "environment.driver_present",
+                "expected_value": False,
+                "legal_reference": "RVV 1990 Article 1 (definition of parking)",
+                "legal_url": "https://wetten.overheid.nl/BWBR0004825#Artikel1"
+            }
+        ],
+        "violation_article": "RVV 1990 Article 23 paragraph 1c",
+        "violation_article_url": "https://wetten.overheid.nl/BWBR0004825#Artikel23",
+        "violation_text_nl": "Het is verboden een voertuig te laten stilstaan langs een gele doorgetrokken streep.",
+        "violation_text_en": "It is prohibited to stop a vehicle along a yellow continuous line.",
+        "wegslepen_basis": "Besluit wegslepen Article 2",
+        "wegslepen_url": "https://wetten.overheid.nl/BWBR0012649#Artikel2",
+        "feit_code": "R396i"
+    },
+
+    "YELLOW_LINE": {
+        "name": "Gele doorgetrokken streep",
+        "name_en": "Yellow continuous line (no stopping)",
+        "required_checks": [
+            {
+                "check_id": "YL_VISIBLE",
+                "description": "Yellow continuous line visible on road",
+                "description_nl": "Gele doorgetrokken streep zichtbaar op de weg",
+                "source_field": "road_markings.yellow_line",
+                "expected_value": True,
+                "legal_reference": "RVV 1990 Article 23 paragraph 1c",
+                "legal_url": "https://wetten.overheid.nl/BWBR0004825#Artikel23"
+            },
+            {
+                "check_id": "YL_NO_PERMIT",
+                "description": "No valid exemption visible",
+                "description_nl": "Geen geldige ontheffing zichtbaar",
+                "source_field": "windshield_items.permit",
+                "expected_value": "no",
+                "legal_reference": "RVV 1990 Article 87",
+                "legal_url": "https://wetten.overheid.nl/BWBR0004825#Artikel87"
+            },
+            {
+                "check_id": "YL_NO_DRIVER",
+                "description": "No driver present",
+                "description_nl": "Geen bestuurder aanwezig",
+                "source_field": "environment.driver_present",
+                "expected_value": False,
+                "legal_reference": "RVV 1990 Article 1",
+                "legal_url": "https://wetten.overheid.nl/BWBR0004825#Artikel1"
+            }
+        ],
+        "violation_article": "RVV 1990 Article 23 paragraph 1c",
+        "violation_article_url": "https://wetten.overheid.nl/BWBR0004825#Artikel23",
+        "violation_text_nl": "Het is verboden een voertuig te laten stilstaan langs een gele doorgetrokken streep.",
+        "violation_text_en": "It is prohibited to stop a vehicle along a yellow continuous line.",
+        "wegslepen_basis": "Besluit wegslepen Article 2",
+        "wegslepen_url": "https://wetten.overheid.nl/BWBR0012649#Artikel2",
+        "feit_code": "R396i"
     }
 }
 
 
 # Mapping from detected sign codes to violation types
 SIGN_CODE_TO_VIOLATION = {
+    # E-codes (parking signs)
+    "E1": "E1",
+    "E2": "E2",
+    "E3": "E3",
+    "E4": "E4",
+    "E4_ELECTRIC": "ELECTRIC_CHARGING",
+    "E5": "E5",
     "E6": "E6",
     "E7": "E7",
+    "E8": "E8",
     "E9": "E9",
+    "E10": "E10",
+    "E11": "E11",
+    "E12": "E12",
+    "E13": "E13",
+    # G-codes (pedestrian areas)
     "G7": "G7",
-    "E4": "ELECTRIC_CHARGING",
-    "E4_ELECTRIC": "ELECTRIC_CHARGING"
+    # R-codes (road markings and specific violations)
+    "R394": "E1",
+    "R395": "E2",
+    "R396": "E3",
+    "R396I": "R396I",
+    "R396i": "R396I",
+    "R397I": "E9",
+    "R397i": "E9",
+    "R397H": "E7",
+    "R397h": "E7",
+    "R402A": "E4",
+    "R402a": "E4",
+    "R402B": "E5",
+    "R402b": "E5",
+    "R402C": "E6",
+    "R402c": "E6",
+    "R402D": "E7",
+    "R402d": "E7",
+    "R402E": "E8",
+    "R402e": "E8",
+    "R584": "G7",
+    # Special road markings
+    "YELLOW_LINE": "YELLOW_LINE",
+    "GELE_STREEP": "YELLOW_LINE",
 }
 
 
