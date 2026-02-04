@@ -45,10 +45,12 @@ In the root directory of the project, create a new file named exactly: .env
 Open the .env file in a text editor (e.g., VS Code or Notepad).
 
 Add your credentials in the following format:
----
+
+```bash
 API_KEY=your_secret_api_key_here
 API_ENDPOINT=[https://api.example.com/v1](https://api.example.com/v1)
----
+```
+
 Important: Never share your .env file or commit it to GitHub.
 
 4. Running the Project
@@ -56,3 +58,4 @@ Once configured, execute the main script:
 
 ```bash
 python main.py
+```
