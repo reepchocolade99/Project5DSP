@@ -1,4 +1,4 @@
-# Project 5: Digital Signal Processing (DSP) Toolkit
+# Data System Project
 
 ![Status](https://img.shields.io/badge/Status-Active-green)
 ![Python](https://img.shields.io/badge/Python-3.x-blue)
