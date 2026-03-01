@@ -5,7 +5,7 @@
 ---
 
 ## 📌 Project Overview
-Project5DSP is an advanced toolkit developed for processing and analyzing digital signals. The primary goal of this project is to [insert specific goal here, e.g., filter real-time audio or analyze sensor telemetry] using modern DSP algorithms.
+Project5DSP is an advanced toolkit developed for processing and analyzing digital signals. The primarly goal of this project is look if it is possible to help the municipality of Amsterdam by making an image recoginition tool to help speed up their work.
 
 This project bridges the gap between mathematical signal theory and practical application by integrating external data sources via APIs, allowing for both local file processing and live data streams.
 ---
